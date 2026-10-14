@@ -66,7 +66,7 @@ claude.ai account, and [uv](https://docs.astral.sh/uv/) (`brew install uv`).
    ```
 3. Have these ready:
    - your **resume** (PDF, DOCX, or text). **Required.**
-   - your **LinkedIn profile PDF** (Profile → More → Save to PDF). Recommended.
+   - your **LinkedIn profile PDF** (your profile → Resources → Save to PDF). Recommended.
    - the companies that have **interviewed you** recently, and how far you got.
    - optional: job descriptions you liked, a target-company list, an old job tracker.
 

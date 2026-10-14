@@ -31,30 +31,92 @@ email and Google Sheets are recommended but optional.
 
 ## Step 1: Files
 
-Ask the user for these files. They can drag a file into the terminal to paste
-its path, or copy files into `profile/uploads/`:
+Collect files **one question at a time**. Ask each one with AskUserQuestion,
+wait for the answer, deal with it, then ask the next. Never list all six at
+once.
 
-| File | Needed? | Why |
-|------|---------|-----|
-| Resume (PDF, DOCX, MD or TXT) | **Required** | Every posting's required qualifications are checked against it |
-| LinkedIn profile PDF (LinkedIn → your profile → More → Save to PDF) | Recommended | Fills gaps the resume leaves out: older roles, projects, skills |
-| Other versions of your resume, if you target more than one kind of role | Optional | |
-| Job descriptions you were excited about or got interviews from | Optional | Strong signal for the researcher |
-| A list of target companies, or an old job-tracking spreadsheet | Optional | Seeds the company list and tracker |
-| Brag doc, performance reviews, portfolio | Optional | Proof points for application answers |
+Every question:
+- says in one line **why it matters** and **what skipping costs**
+- offers these ways to answer: drag a file into the chat (that pastes its path),
+  type or paste the information directly, or skip (questions 2–6 only)
 
-Reading them:
+Options for a question: "I'll drag in a file", "I'll type it instead", "Skip".
+Question 5 also gets "Create a sheet for me to fill in". The user can always
+answer in free text instead.
+
+**Handling a file.** Copy it into `profile/uploads/` right away
+(`cp "<path>" profile/uploads/`) and confirm in one line ("Got it:
+resume.pdf"). If the copy fails with "Operation not permitted" (macOS privacy
+protection for ~/Downloads, ~/Desktop, ~/Documents), have the user run it
+themselves by typing `! cp "<path>" profile/uploads/` in the prompt, or drag
+the file into `profile/uploads/` in Finder.
+
+**Handling a skip.** Discourage it **once**: reply with the one-line cost and
+ask "Add it after all, or skip?" If they still skip, accept it and move on.
+Never bring it up again during setup.
+
+### The questions
+
+1. **Resume** (required: no skip option)
+   *Why:* every posting's required qualifications are checked against it, and
+   /apply only claims experience that appears here.
+   Accept PDF, DOCX, MD or TXT, or pasted text.
+
+2. **LinkedIn profile PDF**: on LinkedIn, go to your profile → **Resources →
+   Save to PDF**.
+   *Why:* it fills gaps your resume leaves out (older roles, projects,
+   skills). *Skipping:* matches are judged on the resume alone.
+
+3. **Other versions of your resume** (if you target more than one kind of role)
+   *Why:* each version shows how you pitch yourself for a different role
+   family. *Skipping:* roles outside your main resume's framing score lower.
+
+4. **Job descriptions you liked, or got interviews for** (files, links or pasted text)
+   *Why:* they're the clearest signal of what you're a fit for, and the
+   researcher looks for more like them. *Skipping:* the research relies only
+   on your company list.
+
+5. **Target companies, or an old job-tracking spreadsheet**
+   *Why:* it seeds the company list and tracker, so nothing you already know
+   about is lost. *Skipping:* the first search starts from your interviews alone.
+   Ways to answer:
+   - drag in a file (CSV, XLSX), or paste a Google Sheets link (read it with
+     the Drive connector)
+   - type the companies straight into the chat
+   - **"Create a sheet for me to fill in"**:
+     - **If the Google Drive connector is already connected** (its tools,
+       e.g. `create_file`, are available): create a Google Sheet titled
+       "Job Hunt – Target companies" using `create_file` with
+       `contentMimeType: text/csv` and `textContent:
+       "Company,Website,Roles of interest,Why I'm interested,Notes\n"`. That
+       converts it to a native Sheet. Give the user the link, and wait until
+       they say they're done. Then read it back with the Drive connector.
+     - **Otherwise:** write `profile/uploads/target-companies.csv` with the
+       same header, open it (`open profile/uploads/target-companies.csv`),
+       and wait until the user says they've saved it.
+
+     Don't connect the Drive connector here just for this. That happens in
+     Step 4.
+
+6. **Brag doc, performance reviews, or portfolio**
+   *Why:* they give /apply real proof points (results, praise, projects) for
+   application answers. *Skipping:* answers rely on resume bullets only.
+
+### Reading the files
+
 - PDF / images / text: use the Read tool.
 - DOCX: `uv run --with python-docx python -c "import docx,sys; print('\n'.join(p.text for p in docx.Document(sys.argv[1]).paragraphs))" FILE`
-- XLSX / CSV: `uv run --with openpyxl python -c ...` or read the CSV directly.
-- If a file in ~/Downloads, ~/Desktop or ~/Documents can't be read ("Operation
-  not permitted"), that's macOS privacy protection for the terminal. Ask the
-  user to drag the file into `profile/uploads/` in Finder instead.
+- XLSX / CSV: `uv run --with openpyxl python -c ...`, or read the CSV directly.
+
+### Writing resume.md
 
 Write `profile/resume.md`: a faithful, complete text version (roles, dates,
-bullets, skills, education). Merge in anything extra from the LinkedIn PDF,
-and mark where it came from. **Don't improve, reword or embellish anything.**
-It's the factual record the jd-reader checks against.
+bullets, skills, education). Merge in anything extra from the LinkedIn PDF and
+other resume versions, and mark where it came from. **Don't improve, reword or
+embellish anything.** It's the factual record the jd-reader checks against.
+Save job descriptions to `profile/uploads/` and summarize what they have in
+common in `profile/signals.md` for the researcher. Keep target companies for
+Step 5, and brag-doc proof points for /apply.
 
 ## Step 2: Profile questions
 
