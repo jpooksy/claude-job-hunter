@@ -114,8 +114,9 @@ If the tracker has no **Added by: Claude** rows yet, this is the first search.
 Before planning, show the top 10 scored roles **in the chat** as a numbered
 list (score, company, role, one-line reason), and ask:
 
-> Before I add these: are there any you'd **never** apply to? Reply with the
-> numbers and a word on why (e.g. "3, 7: too senior"), or "all good".
+> Before I add these: are there any you'd **never** apply to?
+>
+> 👉 **Your turn: reply with their numbers and a word on why (e.g. "3, 7: too senior"), or "all good".**
 
 Turn each "why" into a rule (CLAUDE.md → Feedback → files), re-run
 `uv run scripts/score.py --dry-run` on this run's extractions to show what
@@ -143,7 +144,7 @@ uv run scripts/tracker.py apply
 
 Finish the write (CLAUDE.md → Writing the tracker), then give the tracker link
 (sheet URL, or `tracker/jobs.csv`). End with the next step on the last line,
-e.g. `👉 Your turn: open any role you like and run /apply for help applying.`
+in bold, e.g. 👉 **Your turn: pick any role you like and run /apply for help applying.**
 
 ## Rules
 

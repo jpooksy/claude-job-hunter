@@ -20,8 +20,20 @@ alone.
 1. **Progress header** as the first line: `Setup · Step 2 of 6 · Your profile (round 3 of 6)`.
 2. One short line on **what this step is for**, the first time a step starts.
 3. The question or the content to approve, **in the chat text itself**.
-4. The ask, as the **very last line**, set apart:
-   `👉 Your turn: reply "looks right", or tell me what to change.`
+4. **The ask, in bold, as the very last line**, set apart by a blank line:
+
+   👉 **Your turn: reply "looks right", or tell me what to change.**
+
+   The ask must be impossible to miss:
+   - **Exactly one ask per message**, and it's the bolded last line. If the
+     message has a question in its body, repeat it as the bolded ask.
+   - Say **exactly what to do**: the action, plus the accepted answers ("Drag
+     in your resume, or paste the text"; "Reply with numbers, or 'all good'").
+     Avoid vague asks like "Thoughts?" or "Let me know."
+   - Never end on an explanation, a "why it helps", or a status update. Those
+     go before the ask.
+   - Even when a picker follows, write the bolded ask in the message first, so
+     it's clear what the picker is for.
 
 "Why it helps" goes before the ask, never after it.
 
@@ -212,9 +224,9 @@ their list, show the positions in three groups:
 >
 > Companies you're watching: …
 >
-> 👉 Your turn: reply "looks right", or move anything between groups (e.g.
-> "drop the stretch ones"). Optional: any companies you'd love to work at that
-> aren't listed yet, or postings you've seen and liked?
+> 👉 **Your turn: reply "looks right", or move anything between groups (e.g.
+> "drop the stretch ones"). Optional: add companies you'd love to work at, or
+> postings you've seen and liked.**
 
 Applying alone isn't proof. Stretch positions the user keeps go into
 `titles.stretch` (scored lower, never hidden by the level filter). Dropped ones
@@ -409,4 +421,4 @@ give the link).
    minutes) · `/refresh-tracker` once or twice a week · `/apply` for any role.
 4. If you logged script problems, one line: "I noted a couple of script issues
    in runs/setup/issues.md."
-5. Last line: `👉 Your turn: run /find-jobs to find new roles that fit you.`
+5. Last line, in bold: 👉 **Your turn: run /find-jobs to find new roles that fit you.**

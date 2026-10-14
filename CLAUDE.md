@@ -83,6 +83,12 @@ read it.
 9. **Keep the user's data private.** Never commit or upload `profile/`, `data/`,
    `tracker/`, `runs/` or `drafts/`. If their fork is public, remind them once.
 
+## Talking to the user
+
+When you need something from the user, end your message with **one** clear
+ask, **in bold**, as the last line: 👉 **Your turn: <exactly what to do, and
+the accepted answers>**. Put explanations before it, never after.
+
 ## Feedback → files
 
 When the user reacts to results, record it in the profile files right away,
