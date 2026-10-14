@@ -59,11 +59,11 @@ claude.ai account, and [uv](https://docs.astral.sh/uv/) (`brew install uv`).
    git clone https://github.com/jpooksy/claude-job-hunter.git
    cd claude-job-hunter
    ```
-2. **Start Claude Code** in the folder and run setup:
+2. **Start Claude Code** in the folder. It greets you and points you to setup:
    ```bash
-   claude
-   > /setup
+   claude          # then type /setup
    ```
+   Or start setup straight away with `claude "/setup"`.
 3. Have these ready:
    - your **resume(s)** (PDF, DOCX, or text), all versions if you have more than one. **Required.**
    - your **LinkedIn profile PDF** (your profile → Resources → Save to PDF). Recommended.
