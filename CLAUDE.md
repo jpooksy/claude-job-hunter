@@ -63,7 +63,7 @@ so it sticks in every future session (not just this one):
 
 | They say | Update |
 |----------|--------|
-| "No more crypto companies" / "I'd never sell to X" | `dealbreakers.md` |
+| "No more crypto companies" / "nothing with on-call" | `dealbreakers.md` |
 | "Only remote" / "nothing under $X" / "too senior" | `profile.yaml` (location / comp / level) |
 | "Score dev tools higher" / "interviews matter more" | `fit-score.yaml` |
 | "Show me Solutions Architect roles too" | `profile.yaml → titles.include` |

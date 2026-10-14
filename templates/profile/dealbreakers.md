@@ -9,7 +9,7 @@
 ## Industries / company types
 
 ## Role requirements I can't meet
-<!-- e.g. "5+ years of software engineering", "quota-carrying enterprise sales" -->
+<!-- e.g. "a certification I don't have", "10+ years of X", "a tool or language I don't use" -->
 
 ## Work setup
 

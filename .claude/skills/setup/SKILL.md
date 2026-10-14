@@ -38,6 +38,12 @@ step alone.
 - **Skips:** discourage a skip **once**. Reply with the one-line cost and ask
   (AskUserQuestion) "Add it after all" / "Skip it". If they skip, accept it and
   never bring it up again.
+- **"I don't have one" is an answer, not a skip.** Don't push back. If the
+  question has a low-effort alternative ("paste two or three wins instead"),
+  offer it once in a sentence, then move on.
+- **Don't assume the user's situation.** Most people have one resume, no saved
+  postings, and at best a rough list of companies. Write questions and
+  examples for that person, not for someone with a polished spreadsheet.
 
 ## Step 0: Prepare (no questions)
 
@@ -74,16 +80,17 @@ protection for ~/Downloads, ~/Desktop, ~/Documents), have the user type
 
 2. **LinkedIn profile**
    > Can you add your LinkedIn profile as a PDF? On LinkedIn, open your
-   > profile → **Resources → Save to PDF**, then drag the file in. Pasting
-   > your profile URL also works if downloading is a hassle. It catches things
-   > your resume leaves out, like older roles, projects and skills. If you
-   > skip it, I'll judge matches on your resume alone.
+   > profile → **Resources → Save to PDF**, then drag the file in. (I can't
+   > open LinkedIn links myself, since it needs a login. If the download is a
+   > hassle, paste the text of your Experience section instead.) It catches
+   > things your resume leaves out, like older roles, projects and skills. If
+   > you skip it, I'll judge matches on your resume alone.
 
 3. **Other resume versions**
-   > Do you have other versions of your resume, for a different kind of role?
-   > Drag them in, or say "just the one". Each version shows how you pitch
-   > yourself for that kind of role. If you skip it, roles outside your main
-   > resume's framing will score lower.
+   > Do you have another version of your resume that you use for a different
+   > kind of role? Most people have just one. If so, say "just the one" and
+   > we'll move on. If you do have others, drag them in: each shows how you
+   > pitch yourself for that kind of role.
 
 4. **Roles you interviewed for**
    > Which roles did you apply to and get at least one interview for? A saved
@@ -118,10 +125,11 @@ protection for ~/Downloads, ~/Desktop, ~/Documents), have the user type
    Don't connect the Drive connector here. That happens in Step 4.
 
    Read what they shared (Google Sheets link → Drive connector
-   `read_file_content`; files → see below), then **describe it back in two or
-   three lines** ("About 110 rows: companies, roles, a status column and your
-   own fit scores. Some cells list several roles."). Ask only about what you
-   genuinely can't tell, one question at a time. Save a copy to
+   `read_file_content`; files → see below), then **describe it back in one or
+   two lines** ("Got it: 23 companies, most with a role, and 'applied' next to
+   9 of them."). Expect something rough: company names, maybe roles, a few
+   "applied" notes, a link or two. That's normal and plenty. Ask only about
+   what you genuinely can't tell, one question at a time. Save a copy to
    `profile/uploads/`. It's imported into the tracker in Step 5.
 
 6. **Proof points**
@@ -172,10 +180,9 @@ Don't ask for the interview list again; question 4 already gave it to you.
 List the roles back and ask only what's missing for each: how far they got,
 the outcome, and what seemed to resonate. Then ask:
 - Any **interest that didn't come from an application**: recruiters who
-  reached out, or companies that passed but said **"stay in touch"**? (If
-  email will be connected, say the inbox audit will look for these too.)
-- If email will **not** be connected, and question 5 didn't cover it: which
-  applications are open right now? (Company, role, date applied, status.)
+  reached out, or companies that passed but said **"stay in touch"**? (Say
+  that if they connect email in a later step, Claude will look for these
+  too, so a rough answer is fine.)
 
 **Round 3: Targets** → `profile/targets.md`, companies with relationship `target`
 
@@ -202,28 +209,40 @@ they want them, and say they'll score lower. Drop "not yet" positions from
 
 Ask one at a time. Use AskUserQuestion only for the multiple-choice part
 (remote required / preferred / flexible); the rest are plain questions:
-- Where you live (city, time zone), and whether remote is required,
-  preferred or flexible. If hybrid or onsite is OK, in which metros?
-- Lowest acceptable pay. Explain: "a posted range whose **top** is at or
-  below this gets dropped".
-- Work authorization: if they need sponsorship, add it to dealbreakers.md as a
-  check ("posting says no sponsorship").
-- When they started this search. The first inbox audit looks back to then.
+- "Where do you live?" (city; infer the time zone and confirm it)
+- Remote: required, preferred, or flexible (AskUserQuestion). If hybrid or
+  in-office is OK somewhere: "Which cities would you go into an office in?"
+- "What's the lowest salary you'd consider?" Explain in plain words: "If a
+  posting's whole pay range is below that, I'll hide it. Postings without pay
+  listed are kept."
+- "Do you need visa sponsorship to work in your country?" If yes, add a
+  dealbreaker check ("posting says no sponsorship").
+- "Roughly when did you start this job search?" Explain: "If you connect
+  email, I'll look back to then for applications and replies." A month is
+  fine.
 
 **Round 5: Dealbreakers** → `profile/dealbreakers.md` (+ `profile.yaml → exclude_companies, level.exclude`)
 
-Ask for hard no's. Offer examples so they think broadly:
-industries or company types (e.g. security, adtech, crypto, gambling,
-defense, government/public sector), buyers they can't sell to or work with,
-requirements they can't meet (e.g. "5+ years as a software engineer",
-"enterprise quota-carrying"), company size (too big or too small), travel,
-on-call, specific companies. Explain that these **remove** roles; they don't
-just lower the score.
+Ask: "What would make you say no to a job, no matter how good it looks?"
+Explain that anything listed here **hides** a role completely; it doesn't
+just lower the score. Offer a few examples so they think broadly, choosing
+ones that fit **their** kind of role (don't copy a sales example to an
+engineer):
+- kinds of companies: e.g. crypto, gambling, defense, adtech, government work
+- company size: too big or too early-stage
+- requirements they can't meet, phrased for their field: e.g. "a specific
+  certification", "10+ years of X", "a language or tool I don't use"
+- the work itself: lots of travel, on-call, people management
+- specific companies
+A short list is fine. They can add more any time by telling Claude.
 
 **Round 6: Warm networks (optional)** → `profile/warm-networks.md`
 
-VC portfolio job boards they have a contact at, alumni or community groups,
-former colleagues who offered referrals.
+Ask: "Do you know people who could refer you, or belong to groups that share
+jobs?" Examples: former coworkers now at other companies, a school alumni
+group, a Slack or Discord community, or an investor's job board (many
+venture firms post jobs at all the startups they've funded) where you know
+someone. "No" is a fine answer.
 
 **Write the files**, then generate `titles.include` regexes from the
 qualified positions (broad enough for variants, e.g.
@@ -245,6 +264,11 @@ Gmail connector during sessions. The inbox-auditor looks only at job-search
 messages, never sends anything, and they can disconnect any time. If they
 have security concerns, it's fine to skip. They'll update statuses by
 telling Claude ("I got rejected by Acme").
+
+If they skip email and question 5 didn't already cover it, ask (plain
+message): "Which applications do you have open right now? Company and role is
+enough; add the date and where it stands if you know." Add these as tracker
+rows in Step 5a.
 
 If yes, follow `docs/email-setup.md`:
 1. claude.ai → Settings → Connectors → connect **Gmail**.
@@ -314,7 +338,17 @@ enabled; 404 = wrong ID).
 
 ### 5a. Import what they were already tracking (if question 5 gave you something)
 
-Turn it into tracker rows, **one row per role**:
+Usually this is a rough list: company names, maybe a role and a word like
+"applied" or "interviewing", sometimes a date or a link. Handle that simply:
+- Company + role → one row. Company only → Category Watchlist, Role empty.
+- "applied" or a date applied → Category Applied (waiting), Status Applied.
+  Nothing → To apply / Not Applied.
+- Whatever else they wrote goes in Notes, word for word.
+If the list is that simple, don't show a mapping table. Just say what you'll
+add ("23 rows: 9 applied, 14 to apply") and ask for a yes.
+
+If it's a real tracker with its own columns, also handle the rules below
+(skip whichever don't apply):
 - **Split** cells that list several roles (separated by "•", ";", "/" or new
   lines) into separate rows with the same company.
 - **Map their columns** to ours (Company, Role, Status, Applied, Comp,
@@ -325,17 +359,19 @@ Turn it into tracker rows, **one row per role**:
   Rejected, Ghosted, Hiring Freeze, Closed). A free-text note in a category
   or status cell ("onsite in NYC, passed") is **the user's decision**: map it
   to the closest value (here Passed) and copy the note into Notes.
-- **Their own scores** go in Fit, with `"lock": ["Fit"]` on the op so later
-  runs never overwrite them.
+- **If** they rated jobs themselves (stars, 1–10, "top choice"), put a 1–10
+  version in Fit with `"lock": ["Fit"]` on the op so later runs never
+  overwrite it. Most lists won't have this.
 - Dates become YYYY-MM-DD. Source is "My list". Keep URLs; posting links from
   Greenhouse, Ashby or Lever get IDs automatically, so `/refresh-tracker` can
   re-check them.
 - Rows that are just a company with no role → Category Watchlist, Role empty.
 
-Before writing anything, **show the mapping** in a short table (their value →
-our value, with row counts) and the 5 trickiest rows, and ask for a yes. Then
-write the ops to `runs/setup/import.jsonl`, one per line:
-`{"op": "add", "row": {...}, "lock": ["Fit"]}`, and run:
+For a real tracker, **show the mapping** before writing anything: a short
+table (their value → ours, with row counts) and the few trickiest rows. Ask
+for a yes. Then write the ops to `runs/setup/import.jsonl`, one per line
+(`{"op": "add", "row": {...}}`, plus `"lock": ["Fit"]` only for rows with
+their own rating), and run:
 
 ```bash
 uv run scripts/tracker.py pull
@@ -358,9 +394,13 @@ uv run scripts/ats.py import runs/setup/targets.jsonl --relationship target
 uv run scripts/ats.py detect
 ```
 
-Look up domains you don't know (WebSearch). Report which companies have no
-supported job board (`no_ats`), and ask the user to confirm any marked
-`guessed`: the slug might belong to a different company with the same name.
+Look up websites you don't know (WebSearch). Then tell the user, in plain
+words:
+- which companies' job pages you found, and which you couldn't (`no_ats`).
+  For those, Claude checks their careers page by hand during searches.
+- for any marked `guessed`, show the job-board link
+  (e.g. `https://jobs.ashbyhq.com/<slug>`) and ask "Is this the right
+  company's jobs page?" A same-named company can share the address.
 
 ## Step 6: First inbox audit (if email is connected)
 
@@ -394,8 +434,11 @@ Pick up to 10 candidates spread across companies. Run one **jd-reader** on a
 batch file with them (write a `runs/<date>/batches/calibration.jsonl` if
 needed), then `uv run scripts/score.py --dry-run`.
 
-Show a table: company, role, score, the reasoning line. Ask the user for
-**their** score for each and what's off. Adjust `profile/fit-score.yaml`,
+Explain first, in a sentence: "I'll show you a few real roles with the score
+I'd give each. Tell me what you'd give them, so my scoring matches your
+judgment." Show a numbered table: #, company, role, my score, a short reason.
+Ask them to reply like `1: 7, 2: 3, 3: 8`. A word on any big disagreement
+helps ("2 is way too senior"), but it's optional. Adjust `profile/fit-score.yaml`,
 `dealbreakers.md` or `titles` to match, and re-run `score.py --dry-run`.
 Stop when most scores are within ±1 of theirs (two or three rounds at most).
 Then run `score.py` without `--dry-run`, and `tracker.py plan --scored ...` →
