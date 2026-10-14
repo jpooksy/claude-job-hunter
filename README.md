@@ -70,7 +70,7 @@ claude.ai account, and [uv](https://docs.astral.sh/uv/) (`brew install uv`).
    - what you already use to track your search, if anything (a sheet, a list). With email connected, Claude finds your applications and interviews for you.
    - optional: links to your work (GitHub, portfolio, blog, videos).
 
-Setup takes about 20 minutes, most of it short questions. Then run
+Setup takes about 20 minutes, most of it short questions. Claude drafts what it can from your files, so you mostly confirm. Say **back**, **skip**, **pause** or **why?** any time; if you stop partway, the next session offers to pick up where you left off. Then run
 `/find-jobs` (about 10–15 minutes) to get your first recommendations.
 
 ### Be honest in setup

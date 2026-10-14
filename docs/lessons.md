@@ -28,3 +28,5 @@ workflow.
 | Setup needed the Google Cloud Console just to write cells | The claude.ai Google Sheets connector writes the sheet, and every write is read back and checked (`verify-write`). The service account is now the advanced option |
 | The inbox audit added roles with no title, marked applications "Passed", and logged recruiter outreach as applications | The auditor finds each title from the email, never sets Passed (the user's decision), and logs only real applications |
 | Questions that sounded tailored (e.g. "your most-viewed video") came from the user's own resume, but nothing guaranteed it | Examples must come from the user's own field, or be neutral |
+| Setup asked cold questions the files already answered, and committed profile answers round by round | Setup drafts answers from the files (guesses marked "(my guess)"), recommended picker options come first, and one numbered **profile review** screen (like GOV.UK's "check answers") comes before anything is used |
+| Leaving setup partway meant starting over | `runs/setup/state.json` records progress, and the startup message offers to resume |

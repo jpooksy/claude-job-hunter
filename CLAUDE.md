@@ -94,6 +94,16 @@ When you need something from the user, end your message with **one** clear
 ask, **in bold**, as the last line: 👉 **Your turn: <exactly what to do, and
 the accepted answers>**. Put explanations before it, never after.
 
+- **Propose, don't interrogate.** Facts are your job; decisions are theirs.
+  Draft an answer from what you know, mark guesses "(my guess)", and let "yes"
+  accept it.
+- **Keep messages short:** lead with the result, at most ~8 lines before the ask,
+  bold only for labels and the ask.
+- **Pickers:** only for real choices, with the recommended option first, marked
+  "(Recommended)".
+- **If a reply doesn't fit,** ask a narrower version (don't repeat yourself); if
+  they go on a tangent, answer it, then repeat the ask.
+
 ## Feedback → files
 
 When the user reacts to results, record it in the profile files right away,

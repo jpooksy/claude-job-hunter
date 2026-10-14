@@ -16,74 +16,97 @@ alone.
 
 ## How to talk to the user (every step)
 
-**Shape of every message:**
-1. **Progress header** as the first line: `Setup · Step 3 of 5 · Your profile (round 2 of 5)`.
-2. One short line on **what this step is for**, the first time a step starts.
-3. The question or the content to approve, **in the chat text itself**.
-4. **The ask, in bold, as the very last line**, set apart by a blank line:
+Patterns from well-designed intake flows (GOV.UK "check answers", spec-kit
+`/clarify`, Google's conversation design, TurboTax-style pre-fill), adapted to
+a terminal.
 
-   👉 **Your turn: reply "looks right", or tell me what to change.**
+### The shape of every message
 
-   The ask must be impossible to miss:
-   - **Exactly one ask per message**, and it's the bolded last line. If the
-     message has a question in its body, repeat it as the bolded ask.
-   - Say **exactly what to do**: the action, plus the accepted answers ("Drag
-     in your resume, or paste the text"; "Reply with numbers, or 'all good'").
-     Avoid vague asks like "Thoughts?" or "Let me know."
-   - Never end on an explanation, a "why it helps", or a status update. Those
-     go before the ask.
-   - Even when a picker follows, write the bolded ask in the message first, so
-     it's clear what the picker is for.
+```
+Setup · Step 3 of 5 · Your profile · question 2 of 3
+✓ Files · ✓ Connect · ▸ Profile · ○ Your search · ○ Next     ← only when a new step starts
 
-"Why it helps" goes before the ask, never after it.
+From your resume: Denver, remote in your last two roles.        ← what you already know (guesses marked)
+<One plain question, second person, about their real situation.>
+<What counts as an answer, including the low-effort one.>
+<Why it helps, in one sentence.>  <What skipping costs, for optional questions only.>
 
-**Asking:**
-- **One question per message.** Wait for the reply before doing anything
-  else. Never bundle a follow-up with the next question.
-- **Open-ended questions** (files, links, lists, descriptions) go in a plain
-  chat message. The user drags in a file, pastes, types, or says "skip".
-- **AskUserQuestion is only for real choices** (remote vs. relocate, yes/no on
-  email, which tracker). One question per call. Never offer an option that
-  means "I'll tell you in my next message"; it swallows the answer. If an
-  answer needs content, ask in a plain message.
-- **Anything the user approves must be visible in the chat text of that same
-  message**: lists, mappings, title patterns, rows to add. Tool output is
-  collapsed, so never refer to it as "above". Copy what matters into the
-  message.
-- **Every question has the same shape:** a plain question about their real
-  situation (second person, no jargon) → what counts as an answer, including a
-  low-effort option ("just the company names is fine") → why it helps → what
-  skipping costs (optional questions only).
-- **Examples fit the user.** Build examples from their own resume and field.
-  When you don't know enough yet, use neutral ones ("a result you're proud
-  of").
-- **Never ask for the same thing twice.** Later rounds start from what earlier
-  answers gave you and ask only what's missing.
-- **Skips:** discourage a skip once (one line on the cost, then "Add it after
-  all" / "Skip it"). If they skip, accept it and don't bring it up again.
-  **"I don't have one" is an answer, not a skip.** Offer a low-effort
-  alternative once, in a sentence, then move on.
-- **Don't assume the user's situation.** Most people have one resume, no saved
+👉 **Your turn: <exactly what to do, and the accepted answers>**
+```
+
+- **Progress:** the header on every message, with a question count inside a
+  step ("question 2 of 3") so progress never looks stuck. The named step line
+  (✓ done · ▸ current · ○ to come) appears only when a new step starts.
+- **The ask, in bold, is the very last line**, after a blank line. **Exactly
+  one ask per message.** It says exactly what to do and which answers work
+  ("Drag in your resume, or paste the text"; "Reply 'yes', or fix by number").
+  Never end on an explanation or a status update, and never on vague asks like
+  "Thoughts?" Even before a picker, write the bolded ask first.
+- **Short and scannable:** at most ~8 lines before the ask; lines under ~80
+  characters; bold only for labels and the ask; no nested bullets; no tables
+  wider than the terminal. Lead with the result ("Connected: 50 emails"),
+  then the detail.
+- **Anything the user approves is in the chat text of that same message.** Tool
+  output is collapsed, so never point to it ("above"). Copy what matters in.
+
+### Asking well
+
+- **Propose, don't interrogate.** Facts are your job; decisions are theirs.
+  Wherever the files support an answer, draft it and ask them to confirm.
+  Mark guesses with **(my guess)**. Word it so "yes" accepts your proposal.
+- **One question per message**, and wait for the reply. Never bundle a
+  follow-up with the next question.
+- **Pickers (AskUserQuestion) are for real choices only.** One question per call,
+  with the **recommended option first, labelled "(Recommended)"**. Never offer
+  an option that means "I'll tell you next"; it swallows the answer. Open
+  questions (files, links, lists) go in plain chat.
+- **Make broad questions easy.** For open questions like dealbreakers, offer a
+  multi-select picker of 3–4 likely answers for **their** field (with "Other"
+  for typing), instead of a blank prompt.
+- **Examples fit the user**, from their own resume and field, or are neutral.
+- **Never ask for the same thing twice.** Start from what earlier answers gave
+  you.
+- **A question budget:** setup asks only what changes results. Everything else
+  is a stated default, shown in the profile review where it can be changed.
+- **Skips:** discourage a skip once (the one-line cost, then "Add it after all" /
+  "Skip it"); then accept it, and list it at the end with how to add it later.
+  **"I don't have one" is an answer**, not a skip: offer a low-effort
+  alternative once and move on.
+- **Don't assume their situation.** Most people have one resume, no saved
   postings, and at best a rough list of companies.
 
-**Working:**
-- **Anything that takes more than ~30 seconds** (reading files, the inbox
-  audit, checking job boards): say what's happening and roughly how long
-  before you start. Say when it's done.
-- **Corrections overwrite drafts.** When the user corrects a round, re-read
-  their reply against each numbered section before writing, and echo what
-  changed ("Level: mid only (was mid + senior)").
-- **Don't use email or Drive before their step** unless the user points you to
-  a specific email or file.
-- **Never go silent between steps.** Every step starts with a chat message
-  (progress header, what it's for). Never run two pickers back to back, or move
-  from one step to the next, without a chat message in between that says what
-  just happened ("Connected: I can see 50 application emails") and what's next.
-- **While you wait on something** (the inbox check, reading postings), say:
+### When things don't go to plan
+
+- **A reply you can't use:** don't repeat the question word for word. First ask
+  a narrower one-line version. Second time, give two examples from their
+  resume, or switch to a picker. After that, save a sensible default marked
+  **(my guess)** and say "you can change this in the review".
+- **A tangent or question** ("why do you need this?"): answer briefly, then
+  repeat the bolded ask, so they're back where they were.
+- **Corrections, at any time,** including to earlier steps ("change my salary to
+  130k"): apply them, echo what changed ("Pay floor: $130k (was $150k)"), and
+  carry on from where you were.
+- **"back", "skip", "pause", "why?"** always work. Mention them once, in the
+  welcome. "pause" saves progress (below) and tells them how to resume.
+
+### Working
+
+- **Save as you go.** Write each answer to its profile file right away, and keep
+  `runs/setup/state.json` up to date after every step:
+  `{"done": ["files", "connect"], "next": "profile", "skipped": ["linkedin"], "updated": "<date>"}`.
+  When setup starts and state.json exists, offer to pick up at `next`:
+  "Welcome back. ✓ Files ✓ Connect · Next: your profile."
+- **Anything that takes more than ~30 seconds:** say what's happening and how
+  long it will take before you start, and say when it's done. While waiting:
   "Nothing for you to do right now. I'll message you when it's done (about N
   minutes)."
+- **Never go silent between steps.** Never run two pickers back to back, or
+  change steps, without a chat message that says what just happened and
+  what's next.
+- **Don't use email or Drive before their step** unless the user points you to
+  a specific email or file.
 - **Script problems you work around** go in `runs/setup/issues.md`, not in the
-  user's chat. Mention once at the end that you logged them.
+  chat. Mention once at the end that you logged them.
 
 ## Step 0: Prepare (no questions)
 
@@ -92,19 +115,23 @@ uv --version || echo "uv missing"
 mkdir -p profile/uploads data tracker runs/setup drafts
 cp -n templates/profile/* profile/
 cp -n templates/companies.csv data/companies.csv
+test -f runs/setup/state.json || echo '{"done": [], "next": "files"}' > runs/setup/state.json
 ```
 
 If uv is missing, have the user install it (`brew install uv`, or
 `curl -LsSf https://astral.sh/uv/install.sh | sh`) and restart the terminal.
 
-Welcome (short):
-- Setup takes **about 20 minutes**, most of it short questions. The inbox
-  check runs in the background while you answer them.
-- Five steps: your files → connect email and your tracker → your profile →
-  your search so far → what's next.
-- It builds your profile and tracker; finding **new** jobs comes right after,
-  with `/find-jobs`.
-- You can drag files straight into the chat.
+If `runs/setup/state.json` exists, don't start over: show what's done and
+offer to pick up at `next` ("Welcome back. ✓ Files ✓ Connect · Next: your
+profile. 👉 **Your turn: reply 'continue', or name a part to redo.**").
+
+Otherwise, a welcome of **three lines**, then go straight to the first question
+in the same message:
+
+> Setup takes about 20 minutes: your files, connect email and a tracker, a few
+> profile questions, then a quick check of your search so far. Finding new jobs
+> comes right after, with /find-jobs.
+> Any time you can say **back**, **skip**, **pause**, or **why?**
 
 ## Step 1 of 5: Your files
 
@@ -135,7 +162,12 @@ protection for ~/Downloads, ~/Desktop, ~/Documents), have the user type
    > you skip it, I'll judge matches on your resume alone.
 
 3. **Where can I see your work?**
-   > Is there anywhere I can see your work? Your GitHub profile, specific
+
+   First pull any links already in the resume or LinkedIn (GitHub, portfolio,
+   site) and lead with them: "From your resume: github.com/… and a portfolio
+   at …". Then ask only for anything else.
+
+   > Is there anywhere else I can see your work? Your GitHub profile, specific
    > projects or repos, a portfolio or personal site, a blog, videos, talks
    > you've given. Just paste the links. I'll use them as proof of your
    > skills when I judge roles and write applications. No links? Say
@@ -183,6 +215,9 @@ If yes (see `docs/email-setup.md`):
    see about 50 application emails from the last two months.").
 3. Set `email.enabled: true`.
 
+If no: "No problem. Say **connect my email** any time and I'll pick it up from
+there." Then carry on. Step 4 builds the history from their list instead.
+
 ### 2b. Your tracker
 
 First a chat message with one line per option, then AskUserQuestion, "Where
@@ -214,6 +249,9 @@ should your tracker live?":
 `service_account` (the path to their existing key). Share the sheet with the
 key's `client_email` as Editor (Drive connector `share_file`), then run
 `tracker.py check` and `tracker.py init-sheet`. Send the link.
+
+Lead with the recommended option: put "Google Sheet (Recommended)" first in the
+picker.
 
 **CSV.** Set `tracker.backend: csv`. Tell the user the file is
 `tracker/jobs.csv`, and that they can open it with `! open tracker/jobs.csv`.
@@ -289,11 +327,14 @@ lets those titles pass on their own.
 
 **Round 3: Work setup and pay** → `profile.yaml → location, comp`
 
-One question per message:
-1. Where they live: city (infer the time zone and confirm it).
-2. AskUserQuestion, "How do you want to work?": **Remote only** ·
-   **Remote, or hybrid/in-office near where I live** · **Open to relocating
-   for the right role**.
+One question per message, each starting from what the files show:
+1. Where they live and how they want to work, in **one** message. Lead with
+   what you know ("From your resume: Denver (Mountain time); your last two
+   roles were remote."), then AskUserQuestion, "How do you want to work?". Put
+   the option the resume points to first, marked "(Recommended)": **Remote
+   only** · **Remote, or hybrid/in-office near where I live** · **Open to
+   relocating for the right role**. If the city isn't in the files, ask for it
+   in that same message.
    - Near home → "Which cities would you go into an office in?"
    - Relocating → "Where would you move? A few cities or regions, or 'anywhere
      in the US'." Then: "Only if they help with moving costs?"
@@ -305,11 +346,14 @@ One question per message:
 **Round 4: Dealbreakers** → `profile/dealbreakers.md` (+ `profile.yaml → exclude_companies`)
 
 "What would make you say no to a job, no matter how good it looks?" Anything
-listed **hides** a role completely. Examples that fit **their** field: kinds of
-companies (crypto, gambling, defense, adtech, government work), company size,
-requirements they can't meet, the work itself (travel, on-call, managing
-people), specific companies, or postings that say they don't sponsor visas,
-if they need sponsorship. A short list is fine.
+listed **hides** a role completely. Make it easy to answer: a short chat line,
+then a **multi-select** AskUserQuestion with the 3–4 dealbreakers most likely
+for **their** field and history (e.g. from roles they passed on in their list:
+"too much python" → "Heavy coding roles"). "Other" lets them type the rest.
+Other common ones to draw from: kinds of companies (crypto, gambling, defense,
+adtech, government work), company size, requirements they can't meet, the
+work itself (travel, on-call, managing people), specific companies, and
+postings that don't sponsor visas, if they need sponsorship.
 
 **Round 5: Job boards** → `profile/job-sources.md`
 
@@ -322,12 +366,32 @@ if they need sponsorship. A short list is fine.
 > Is there a job board you use that isn't listed? An industry community's
 > board, a newsletter's job list, an investor's portfolio board…
 >
-> 👉 **Your turn: paste any job board links, or say "that's it".**
+> 👉 **Your turn: say "that's it" (most people do), or paste any job board links.**
 
 Check each link right away (WebFetch) and say plainly whether you can read it.
 For login-walled or blocked boards (LinkedIn Jobs, Wellfound, Otta): "I can't
 open that one, but you can paste listings from it any time." Record each one
 in `job-sources.md`.
+
+**Profile review** (one message, before leaving Step 3): everything from this
+step on one screen, numbered, with defaults you didn't ask about stated
+outright, so they can be changed:
+
+> Setup · Step 3 of 5 · Your profile · review
+>
+> 1. Roles: Solutions Engineer, Sales Engineer, Developer Advocate
+> 2. Level: mid-level only
+> 3. Where: remote, or hybrid in Denver
+> 4. Lowest salary: $150k
+> 5. Dealbreakers: crypto, security, heavy coding roles
+> 6. Job boards: career pages, web search, YC's list (default)
+> 7. Hidden by default: internships, director and VP roles
+>
+> 👉 **Your turn: reply "looks right", or fix by number (e.g. "4: $130k").**
+
+After a fix, show the same block again with the changed line marked
+("4. Lowest salary: $130k ← changed"). Don't replay the rounds. Then write
+the files, update `runs/setup/state.json`, and move on.
 
 ## Step 4 of 5: Your search so far
 
@@ -409,6 +473,11 @@ the clickable link, and offer `! open "<link>"`).
    re-contacting.
 3. **The routine**: `/find-jobs` finds new companies and roles · `/refresh-tracker`
    once or twice a week · `/apply` for any role.
-4. If you logged script problems: "I noted a couple of script issues in
+4. **Skipped or left for later**, if anything, each with how to add it ("LinkedIn
+   PDF: drag it in any time and say 'add my LinkedIn'"; "Email: say 'connect my
+   email'").
+5. If you logged script problems: "I noted a couple of script issues in
    runs/setup/issues.md."
-5. Last line, in bold: 👉 **Your turn: run /find-jobs to find new roles that fit you.**
+6. Last line, in bold: 👉 **Your turn: run /find-jobs to find new roles that fit you.**
+
+Set `runs/setup/state.json` to `"next": "done"`.
