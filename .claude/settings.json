@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run scripts/ats.py:*)",
+      "Bash(uv run scripts/filter.py:*)",
+      "Bash(uv run scripts/score.py:*)",
+      "Bash(uv run scripts/tracker.py pull:*)",
+      "Bash(uv run scripts/tracker.py plan:*)",
+      "Bash(uv run scripts/tracker.py check:*)",
+      "Bash(uv run scripts/tracker.py exclude:*)",
+      "Bash(uv run scripts/tracker.py change:*)",
+      "WebSearch",
+      "WebFetch"
+    ]
+  }
+}

@@ -1,0 +1,55 @@
+name: Riley Chen (fictional)
+search_started: "2026-08-01"
+
+location:
+  home: Boulder, CO
+  country: US
+  timezone: America/Denver
+  remote: required
+  onsite_ok_metros: [Boulder, Denver]
+  preferred_metros: [Denver, Boulder]
+  exclude_location_patterns:
+    - '\b(EMEA|APAC|APJ|LATAM|ANZ)\b'
+    - '\b(UK|United Kingdom|London|Ireland|Dublin|Germany|Berlin|Munich|France|Paris|Netherlands|Amsterdam|Spain|Madrid|Barcelona|Portugal|Lisbon|Poland|Sweden|Switzerland|Zurich|Italy|Milan|Rome|Belgium|Brussels|Austria|Vienna|Denmark|Copenhagen|Norway|Oslo|Finland|Helsinki|Czech|Prague|Romania|Bucharest|Ukraine|Kyiv|Turkey|Istanbul|Greece|Athens|Estonia|Serbia|Belgrade)\b'
+    - '\b(Israel|Tel Aviv|UAE|Dubai|Abu Dhabi|Saudi|Riyadh|Qatar|Doha|Egypt|Cairo|South Africa|Cape Town|Johannesburg|Nigeria|Lagos|Kenya|Nairobi|Middle East|MENA)\b'
+    - '\b(India|Bangalore|Bengaluru|Hyderabad|Pune|Singapore|Japan|Tokyo|Australia|Sydney|Melbourne|Korea|Seoul|China|Shanghai|Beijing|Hong Kong|Taiwan|Taipei|Philippines|Manila|Indonesia|Jakarta|Vietnam|Thailand|Bangkok|Malaysia|Kuala Lumpur|New Zealand|Auckland)\b'
+    - '\b(Canada|Toronto|Vancouver|Montreal|Mexico|Brazil|Sao Paulo|Argentina|Buenos Aires|Colombia|Bogota|Chile|Santiago|Peru|Lima|Costa Rica|Uruguay|Montevideo)\b'
+  country_markers:
+    - '\b(US|USA|U\.S\.|United States|Americas|North America|AMER|NAMER)\b'
+    - ',\s*(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|DC)\b'
+
+comp:
+  currency: USD
+  min_top_of_range: 130000
+
+level:
+  current: mid
+  target: [mid]
+  exclude: [director, vp, principal]
+
+titles:
+  include:
+    - 'solutions? (engineer|architect|consultant)'
+    - 'sales engineer'
+    - 'customer (success )?engineer'
+    - 'technical account manager'
+    - 'developer (advocate|relations)'
+    - '\bdevrel\b'
+  exclude: ['\bintern\b', 'account executive', 'manager, solutions', 'solutions engineering manager']
+
+industries:
+  core: [developer APIs, developer platforms, web hosting, cloud developer tooling]
+  adjacent: [databases, data infrastructure, observability, CI/CD]
+
+exclude_companies: []
+
+email:
+  enabled: false
+  last_audit: ""
+
+tracker:
+  backend: csv
+  sheet_id: ""
+  service_account: ~/.config/claude-job-hunter/service-account.json
+  ghosted_after_days: 30
+  sort: true

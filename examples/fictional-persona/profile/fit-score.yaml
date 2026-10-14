@@ -1,0 +1,40 @@
+# How the fit score (1-10) is calculated. score.py does the math; the jd-reader
+# only fills in the facts (level, industry tier, qualification match, dealbreakers).
+# Change the numbers to change what rises to the top. Your own score in the
+# tracker always wins: plans never overwrite a Fit you typed in.
+
+base: 5
+min: 1
+max: 10
+
+industry:          # from the jd-reader's industry_tier, judged against profile.industries
+  core: 2
+  adjacent: 1
+  other: 0
+
+relationship:      # from data/companies.csv
+  interviewed: 2   # they interviewed you (a real signal you fit)
+  door_open: 1     # they passed but asked you to stay in touch
+  warm: 1          # referral / warm-network path
+  target: 1        # on your own list
+  research: 0      # found by the researcher
+
+level:             # posting level vs profile.level.target
+  on_target: 1
+  below_target: 0
+  one_above: -1
+  two_plus_above: -2
+
+location:
+  preferred_metro: 1
+  hours_conflict: -1   # e.g. requires East Coast hours and you're on the West Coast
+
+qualification:     # does your resume meet the REQUIRED qualifications?
+  strong: 1        # meets all, most with room to spare
+  solid: 0         # meets the required ones
+  stretch: -2      # missing one required qualification
+  unqualified: drop
+
+# Optional bonuses matched against title + industry + buyer (regex).
+keywords: []
+#  - {pattern: 'developer tools|devtools', points: 1, label: devtools}

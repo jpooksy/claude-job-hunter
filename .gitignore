@@ -1,0 +1,25 @@
+# Your personal data. Never commit these.
+/profile/
+/data/
+/tracker/
+/runs/
+/drafts/
+
+# Credentials
+*.json.key
+service-account*.json
+.env
+
+# Example workspace outputs (inputs under examples/*/profile and data/companies.csv stay committed)
+/examples/*/tracker/
+/examples/*/runs/
+/examples/*/drafts/
+/examples/*/data/seen.jsonl
+/examples/*/data/exclude.txt
+
+# Tooling
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+.claude/settings.local.json

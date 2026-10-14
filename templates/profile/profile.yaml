@@ -1,0 +1,56 @@
+# Your search settings. The /setup skill writes this file from your answers;
+# edit it any time. Scripts read the structured fields below. Judgment calls
+# (dealbreakers, background) live in the .md files next to this one.
+
+name: ""
+search_started: ""          # YYYY-MM-DD. The first inbox audit looks back to here.
+
+location:
+  home: ""                  # e.g. "Denver, CO"
+  country: US
+  timezone: ""              # e.g. America/Denver
+  remote: required          # required | preferred | flexible
+  onsite_ok_metros: []      # hybrid/onsite is fine here, e.g. ["Denver"]
+  preferred_metros: []      # small fit bonus, e.g. ["Denver"]
+  # A posting is dropped when its location matches an exclude pattern and none
+  # of the country markers. Unknown locations are kept for the jd-reader.
+  exclude_location_patterns:
+    - '\b(EMEA|APAC|APJ|LATAM|ANZ)\b'
+    - '\b(UK|United Kingdom|London|Ireland|Dublin|Germany|Berlin|Munich|France|Paris|Netherlands|Amsterdam|Spain|Madrid|Barcelona|Portugal|Lisbon|Poland|Sweden|Switzerland|Zurich|Italy|Milan|Rome|Belgium|Brussels|Austria|Vienna|Denmark|Copenhagen|Norway|Oslo|Finland|Helsinki|Czech|Prague|Romania|Bucharest|Ukraine|Kyiv|Turkey|Istanbul|Greece|Athens|Estonia|Serbia|Belgrade)\b'
+    - '\b(Israel|Tel Aviv|UAE|Dubai|Abu Dhabi|Saudi|Riyadh|Qatar|Doha|Egypt|Cairo|South Africa|Cape Town|Johannesburg|Nigeria|Lagos|Kenya|Nairobi|Middle East|MENA)\b'
+    - '\b(India|Bangalore|Bengaluru|Hyderabad|Pune|Singapore|Japan|Tokyo|Australia|Sydney|Melbourne|Korea|Seoul|China|Shanghai|Beijing|Hong Kong|Taiwan|Taipei|Philippines|Manila|Indonesia|Jakarta|Vietnam|Thailand|Bangkok|Malaysia|Kuala Lumpur|New Zealand|Auckland)\b'
+    - '\b(Canada|Toronto|Vancouver|Montreal|Mexico|Brazil|Sao Paulo|Argentina|Buenos Aires|Colombia|Bogota|Chile|Santiago|Peru|Lima|Costa Rica|Uruguay|Montevideo)\b'
+  country_markers:
+    - '\b(US|USA|U\.S\.|United States|Americas|North America|AMER|NAMER)\b'
+    - ',\s*(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|DC)\b'
+
+comp:
+  currency: USD
+  min_top_of_range: 0       # drop roles whose posted range tops out at or below this (0 = off)
+
+level:
+  current: mid              # entry | mid | senior | staff | principal | manager | director
+  target: [mid]             # levels you're qualified for today
+  exclude: [director, vp]   # never show these
+
+titles:
+  # Case-insensitive regexes. A posting must match one include and no exclude.
+  include: []               # e.g. ['solutions? (engineer|architect|consultant)', 'sales engineer']
+  exclude: ['\bintern\b']
+
+industries:
+  core: []                  # significant, hands-on experience (+2)
+  adjacent: []              # close enough to be credible (+1)
+
+exclude_companies: []       # never show roles here
+
+email:
+  enabled: false            # true once the Gmail connector works (see docs/email-setup.md)
+  last_audit: ""            # set by the inbox audit
+
+tracker:
+  backend: csv              # csv | sheets   (Google Sheets is recommended)
+  sheet_id: ""
+  service_account: ~/.config/claude-job-hunter/service-account.json
+  ghosted_after_days: 30
+  sort: true                # sort rows by Category, then Fit

@@ -1,0 +1,6 @@
+company,domain,relationship,ats,slug,detect,careers_url,status,why,added
+Airbyte,airbyte.com,target,ashby,airbyte,guessed,,active,On my list,2026-10-14
+ClickHouse,clickhouse.com,target,ashby,clickhouse,guessed,,active,On my list,2026-10-14
+LaunchDarkly,launchdarkly.com,interviewed,greenhouse,launchdarkly,careers_page,https://launchdarkly.com/careers,active,Final round for SE,2026-10-14
+Supabase,supabase.com,interviewed,ashby,supabase,careers_page,https://supabase.com/careers,active,DevRel take-home,2026-10-14
+Vercel,vercel.com,interviewed,greenhouse,vercel,careers_page,https://vercel.com/careers,active,CSE hiring manager round,2026-10-14
