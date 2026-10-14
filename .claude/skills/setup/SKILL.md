@@ -79,7 +79,7 @@ If uv is missing, have the user install it (`brew install uv`, or
 `curl -LsSf https://astral.sh/uv/install.sh | sh`) and restart the terminal.
 
 Welcome (short):
-- Setup takes **about 30–45 minutes**. Most of it is answering questions. The
+- Setup takes **about 20 minutes**. Most of it is answering questions. The
   inbox check runs on its own for a few minutes.
 - Six steps: your files → your profile → email → your tracker → filling the
   tracker → what's next.

@@ -70,7 +70,7 @@ claude.ai account, and [uv](https://docs.astral.sh/uv/) (`brew install uv`).
    - the roles that got you **interviews** recently: the company and title are enough.
    - optional: whatever you already use to track your search (a sheet, a list), and links to your work (GitHub, portfolio, blog, videos).
 
-Setup takes about 30–45 minutes, most of it short questions. Then run
+Setup takes about 20 minutes, most of it short questions. Then run
 `/find-jobs` (about 15–25 minutes) to get your first recommendations.
 
 ### Be honest in setup
