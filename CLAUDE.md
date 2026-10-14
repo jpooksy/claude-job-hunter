@@ -11,7 +11,7 @@ work, and the user's own data lives in gitignored folders.
   closed postings, follow-ups), **/apply** (answers, cover letters, outreach).
 - Read `profile/` before doing job-search work: `resume.md`, `background.md`,
   `work.md`, `stories.md`, `signals.md`, `targets.md`, `dealbreakers.md`,
-  `warm-networks.md`, `profile.yaml`, `fit-score.yaml`.
+  `job-sources.md`, `profile.yaml`, `fit-score.yaml`.
 
 ## Layout
 
@@ -41,13 +41,17 @@ How the write finishes depends on `profile.yaml → tracker.backend`:
      `get_values(spreadsheetId=<sheet_id>, range="Jobs!A1:Z")` and save the
      result **verbatim** to `tracker/connector-read.json`. It counts as fresh
      for 20 minutes.
-  2. `apply` writes `tracker/connector-write.json`. Send its `steps` in order
-     (`batch_clear_values`, then each `update_values`), copying every field
-     exactly as it is. Never retype or "fix" values: the leading `'` on text is
-     intentional, and keeps it from being read as a formula or date.
-  3. Read the sheet again (step 1), then run
-     `uv run scripts/tracker.py verify-write`. If it reports differences, re-send
-     the same steps and verify again.
+  2. `apply` writes `tracker/connector-write.json`, containing **only the rows
+     that changed** (new rows go at the end; the sheet keeps its own order).
+     Send its `steps` in order, copying every field exactly as it is. Never
+     retype or "fix" values: the leading `'` on text is intentional, and keeps
+     it from being read as a formula or date. No steps means nothing changed.
+  3. Read back **only the ranges you wrote** (`apply` lists them): one
+     `get_values` per range, saved as a JSON list to
+     `tracker/connector-verify.json`. Then run
+     `uv run scripts/tracker.py verify-write`. If it reports differences,
+     re-send the same steps and verify again. Afterwards the saved copy of the
+     sheet is discarded, so the next command reads it fresh.
 - **`sheets`** (service account) and **`csv`**: `apply` writes directly.
 
 The local copy `tracker/jobs.csv` is refreshed after every write, so agents can

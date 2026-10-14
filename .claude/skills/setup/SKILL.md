@@ -10,14 +10,14 @@ new jobs. That's `/find-jobs`, which they run right after. Say this in the
 welcome, and again at the end.
 
 If `profile/profile.yaml` already exists, ask which part to redo (files,
-profile, email, tracker, fill the tracker) and jump to that step. To set up
+email and tracker, profile, search history) and jump to that step. To set up
 just one piece ("connect Gmail", "switch to Google Sheets"), run that step
 alone.
 
 ## How to talk to the user (every step)
 
 **Shape of every message:**
-1. **Progress header** as the first line: `Setup · Step 2 of 6 · Your profile (round 3 of 6)`.
+1. **Progress header** as the first line: `Setup · Step 3 of 5 · Your profile (round 2 of 5)`.
 2. One short line on **what this step is for**, the first time a step starts.
 3. The question or the content to approve, **in the chat text itself**.
 4. **The ask, in bold, as the very last line**, set apart by a blank line:
@@ -98,17 +98,17 @@ If uv is missing, have the user install it (`brew install uv`, or
 `curl -LsSf https://astral.sh/uv/install.sh | sh`) and restart the terminal.
 
 Welcome (short):
-- Setup takes **about 20 minutes**. Most of it is answering questions. The
-  inbox check runs on its own for a few minutes.
-- Six steps: your files → your profile → email → your tracker → filling the
-  tracker → what's next.
+- Setup takes **about 20 minutes**, most of it short questions. The inbox
+  check runs in the background while you answer them.
+- Five steps: your files → connect email and your tracker → your profile →
+  your search so far → what's next.
 - It builds your profile and tracker; finding **new** jobs comes right after,
   with `/find-jobs`.
-- They can drag files straight into the chat.
+- You can drag files straight into the chat.
 
-## Step 1 of 6: Your files and history
+## Step 1 of 5: Your files
 
-Five questions, one per message.
+Three questions, one per message.
 
 **Handling a file.** Copy it into `profile/uploads/` right away
 (`cp "<path>" profile/uploads/`) and confirm in one line ("Got it:
@@ -134,34 +134,7 @@ protection for ~/Downloads, ~/Desktop, ~/Documents), have the user type
    > things your resume leaves out, like older roles, projects and skills. If
    > you skip it, I'll judge matches on your resume alone.
 
-3. **Roles you interviewed for**
-   > Which roles did you apply to and get at least one interview for? Just
-   > the **company and role title** is fine, plus how far you got if you
-   > remember. Saved postings, links or pasted text work too, but old
-   > postings are usually taken down. These are proof of what you're
-   > qualified for, and I'll look for more roles like them. If you skip it,
-   > I'll research from your company list alone.
-
-   Only roles that got an interview. Postings they merely liked are for Step 2
-   round 4.
-
-4. **What you're already tracking**
-   > Are you already tracking your job search anywhere: a spreadsheet, a notes
-   > doc, a Notion page, bookmarks? Paste a Google Sheets link, drag in a file,
-   > or paste the list. I'll bring it in so your applications and the
-   > companies you're watching carry over. If you don't have one, that's
-   > fine. If you skip it, past applications only show up if you connect
-   > email.
-
-   Read what they shared (a Google Sheets link → the Google Sheets connector's
-   `get_values`, or the Drive connector's `read_file_content`; files → see
-   below). **Describe it back in one or two lines** ("Got it: 23 companies,
-   most with a role, and 'applied' next to 9 of them"). Expect something rough;
-   that's normal and plenty. Ask only about what you genuinely can't tell, one
-   question at a time. Save a copy to `profile/uploads/`. It's imported in
-   Step 5.
-
-5. **Where can I see your work?**
+3. **Where can I see your work?**
    > Is there anywhere I can see your work? Your GitHub profile, specific
    > projects or repos, a portfolio or personal site, a blog, videos, talks
    > you've given. Just paste the links. I'll use them as proof of your
@@ -173,152 +146,57 @@ protection for ~/Downloads, ~/Desktop, ~/Documents), have the user type
    label side projects as such). Confirm in a line or two: "I see 3 projects
    that stand out: X, Y, Z. Anything here that doesn't represent you well?"
 
-### Reading files
+**Reading files:** PDF / images / text → the Read tool. DOCX →
+`uv run --with python-docx python -c "import docx,sys; print('\n'.join(p.text for p in docx.Document(sys.argv[1]).paragraphs))" FILE`.
+XLSX / CSV → `uv run --with openpyxl python -c ...`, or read the CSV directly.
+Never use plain `python`/`python3`.
 
-- PDF / images / text: use the Read tool.
-- DOCX: `uv run --with python-docx python -c "import docx,sys; print('\n'.join(p.text for p in docx.Document(sys.argv[1]).paragraphs))" FILE`
-- XLSX / CSV: `uv run --with openpyxl python -c ...`, or read the CSV directly.
+**Write `profile/resume.md`:** a faithful, complete text version of every
+resume version (roles, dates, bullets, skills, education), plus anything extra
+from LinkedIn, each part marked with where it came from. **Don't improve,
+reword or embellish anything.** It's the factual record the jd-reader checks
+against.
 
-### Writing what you learned
+## Step 2 of 5: Connect email and your tracker
 
-- `profile/resume.md`: a faithful, complete text version of every resume
-  version (roles, dates, bullets, skills, education), plus anything extra from
-  LinkedIn, each part marked with where it came from. **Don't improve, reword
-  or embellish anything.** It's the factual record the jd-reader checks
-  against.
-- `profile/signals.md`: the roles from question 3 (company, role, how far,
-  outcome).
+Connections come early so Claude can build the user's history in the
+background while they answer the profile questions. Three parts, each with its
+own message.
 
-## Step 2 of 6: Your profile
-
-Six short rounds. Draft from what you already have, then ask the user to
-**confirm or correct**. One round per message.
-
-**Round 1: Background** → `profile/background.md`, `profile.yaml → industries, titles`
-
-Show a numbered draft (a few short bullets per section) and ask for
-corrections ("3: …"):
-1. **Positions you're qualified for today** (titles held, plus roles whose
-   day-to-day work they've clearly done)
-2. **Industries with significant experience**: real time in the space, enough
-   to talk shop with a customer there
-3. **What you're strongest at** (3–5 things, with proof)
-4. **Tools you've used for real**, and common requirements you **don't** have
-
-**Round 2: Level** → `profile.yaml → level`
-
-A decision, not buried in a draft. State their current level and years in a
-line, then AskUserQuestion: "Which levels should I search for?" with options
-such as "Mid-level only" / "Mid-level and senior" / "Senior only" (adjusted
-to their level).
-
-**Round 3: Interview details and other interest** → `profile/signals.md`, companies with relationship `interviewed` / `door_open`
-
-List the roles from Step 1 question 3 back. Ask only what's missing for each
-(how far, outcome, what resonated). Then: any interest that didn't come from
-an application, like recruiters who reached out, or companies that said "stay
-in touch"? Say that if they connect email, Claude will look for these too, so
-a rough answer is fine.
-
-**Round 4: Check your targets** → `profile/targets.md`, `profile.yaml → titles`
-
-A verification, not an open question. From the resume, the interviews and
-their list, show the positions in three groups:
-
-> **Proven** (you got interviews): …
-> **Plausible** (you applied, and your resume supports it): …
-> **Stretch** (your resume doesn't clearly support it; these score lower): …
->
-> Companies you're watching: …
->
-> 👉 **Your turn: reply "looks right", or move anything between groups (e.g.
-> "drop the stretch ones"). Optional: add companies you'd love to work at, or
-> postings you've seen and liked.**
-
-Applying alone isn't proof. Stretch positions the user keeps go into
-`titles.stretch` (scored lower, never hidden by the level filter). Dropped ones
-are removed from `titles.include`.
-
-**Round 5: Work setup and pay** → `profile.yaml → location, comp`
-
-One question per message:
-1. Where they live: city (infer the time zone and confirm it).
-2. AskUserQuestion, "How do you want to work?":
-   **Remote only** · **Remote, or hybrid/in-office near where I live** ·
-   **Open to relocating for the right role**.
-   - Near home → "Which cities would you go into an office in?"
-   - Relocating → "Where would you move? A few cities or regions, or 'anywhere
-     in the US'." Then: "Only if they help with moving costs?"
-     (`relocate_to`, `relocation_help_required`)
-3. "What's the lowest salary you'd consider?" Say, in plain words: "If a
-   posting's whole pay range is below that, I'll hide it. Postings without pay
-   listed are kept." If their target positions span different kinds of roles,
-   ask: "Is that the same for every kind of role you're targeting?" Different
-   answers go in `comp.by_title`.
-
-**Round 6: Dealbreakers and warm paths** → `profile/dealbreakers.md`, `profile/warm-networks.md` (+ `profile.yaml → exclude_companies`)
-
-First message: "What would make you say no to a job, no matter how good it
-looks?" Anything listed **hides** a role completely. Offer a few examples that
-fit **their** field: kinds of companies (crypto, gambling, defense, adtech,
-government work), company size, requirements they can't meet, the work itself
-(travel, on-call, managing people), specific companies, or postings that say
-they don't sponsor visas, if they need sponsorship. A short list is fine.
-
-Second message: "Do you know people who could refer you, or belong to groups
-that share jobs?" Examples: former coworkers at other companies, a school
-alumni group, a Slack or Discord community, or an investor's job board (many
-venture firms list jobs at the startups they've funded) where you know
-someone. "No" is a fine answer.
-
-**Then write the files, and show the result in the chat** (not in tool output):
-- the title patterns (`titles.include`, `titles.stretch`, `titles.exclude`) as
-  a short list of plain-English role names
-- levels, location rule, pay floor(s)
-
-**Self-check before moving on:** for each kept position, make a sample title
-("Head of Developer Relations") and check it against the title, stretch and
-level rules. If a kept role would be filtered out, fix the profile (e.g. put it
-in `titles.stretch`) and say so in one line.
-
-## Step 3 of 6: Email (highly recommended)
+### 2a. Email (highly recommended)
 
 Explain **in the chat text, before** the yes/no picker:
 - It finds every application's real status: confirmations, interview invites,
   rejections (even ones buried as replies in old threads), and ghosting.
-- It finds applications missing from their tracker, and companies that said
-  "stay in touch".
-- The trade-off: Claude reads their mail through the claude.ai Gmail
-  connector during sessions, looks only at job-search messages, and never
-  sends anything. They can disconnect any time. Skipping is fine if they have
-  security concerns.
+- It finds applications you forgot to track, and companies that said "stay in
+  touch". You'll just confirm what it found instead of typing your history.
+- The trade-off: Claude reads your mail through the claude.ai **Gmail**
+  connector during sessions (nothing else: not your calendar or files), looks
+  only at job-search messages, and never sends anything. You can disconnect
+  any time. Skipping is fine if you have security concerns.
 
 If yes (see `docs/email-setup.md`):
 1. If the Gmail tools aren't available: claude.ai → Settings → Connectors →
-   **Gmail**, then restart Claude Code and resume this session with
-   `claude --continue`.
-2. Run one search ("thank you for applying", last 60 days) and **report the
-   count** ("Connected: I can see 33 application emails from the last two
-   months"). Don't report the contents.
+   **Gmail**, then restart Claude Code and resume with `claude --continue`.
+2. Run one search ("thank you for applying", last 60 days) and **tell the
+   user the count in a chat message** before anything else ("Connected: I can
+   see about 50 application emails from the last two months.").
 3. Set `email.enabled: true`.
 
-If they skip email and Step 1 question 4 didn't cover it, ask (plain message):
-"Which applications do you have open right now? Company and role is enough."
+### 2b. Your tracker
 
-## Step 4 of 6: Your tracker
-
-AskUserQuestion, "Where should your tracker live?", with a short line of
-explanation for each option **in the chat text** first:
+First a chat message with one line per option, then AskUserQuestion, "Where
+should your tracker live?":
 - **Google Sheet (recommended)**: updates automatically, opens anywhere
   including your phone, has filters and dropdowns. You can edit it by hand and
-  Claude keeps your edits. Uses the claude.ai **Google Sheets connector**: no
+  Claude keeps your edits. Uses the claude.ai **Google Sheets** connector: no
   Google Cloud setup.
 - **Google Sheet with my own service account**: only for people who already
-  have one (see `docs/sheets-setup.md`, advanced).
+  have one (advanced; see `docs/sheets-setup.md`).
 - **CSV file**: no Google at all. Opens in Excel or Numbers, but it isn't
   live: re-open it after each update.
 
-**Google Sheet (connector).** See `docs/sheets-setup.md`:
+**Google Sheet (connector).**
 1. If the Google Sheets or Google Drive tools aren't available, have the user
    connect both in claude.ai → Settings → Connectors, then restart Claude Code
    and resume with `claude --continue`.
@@ -328,108 +206,209 @@ explanation for each option **in the chat text** first:
    Run `uv run scripts/tracker.py init-sheet` and send the steps in
    `tracker/connector-init.json` with the Sheets connector, in order and
    verbatim.
-4. **Give the user the link to the sheet, as a clickable link in the chat**,
-   right away: "Here's your tracker: [Job Hunt Tracker](https://docs.google.com/spreadsheets/d/<id>/edit).
-   It's empty for now; I'll fill it in the next step." Never just say the sheet
-   is "set up". The user shouldn't have to look for it in Drive.
+4. **Give the user the link right away, as a clickable link**: "Here's your
+   tracker: [Job Hunt Tracker](https://docs.google.com/spreadsheets/d/<id>/edit).
+   It's empty for now; it fills in shortly." Never just say it's "set up".
 
 **Service account.** Set `tracker.backend: sheets`, `sheet_id`, and
 `service_account` (the path to their existing key). Share the sheet with the
 key's `client_email` as Editor (Drive connector `share_file`), then run
-`tracker.py check` and `tracker.py init-sheet`.
+`tracker.py check` and `tracker.py init-sheet`. Send the link.
 
 **CSV.** Set `tracker.backend: csv`. Tell the user the file is
 `tracker/jobs.csv`, and that they can open it with `! open tracker/jobs.csv`.
-They can switch to a Google Sheet later with "/setup Google Sheets".
 
-Writing to the tracker always follows CLAUDE.md → **Writing the tracker**.
+### 2c. What you're already tracking
 
-## Step 5 of 6: Fill your tracker
+> Are you already tracking your job search anywhere: a spreadsheet, a notes
+> doc, a Notion page, bookmarks? Paste a Google Sheets link, drag in a file, or
+> paste the list. Rough is fine. Your applications and the companies you're
+> watching carry over, so you don't start from scratch.
+>
+> 👉 **Your turn: share your list, or say "I don't have one".**
 
-Say what's about to happen and how long it takes ("I'll bring in your list,
-then check your inbox, which takes about 5–10 minutes"). Then do all of it, and
-show **one** combined summary for approval.
+Read it (Google Sheets link → the Sheets connector's `get_values`; files → as
+above), save a copy to `profile/uploads/`, and describe it back in one line
+("Got it: 23 companies, most with a role, 'applied' next to 17").
 
-### 5a. Their own list (if Step 1 question 4 gave one)
+### 2d. Start the background work, then move on
 
-Write ops to `runs/setup/import.jsonl`, one per line (`{"op": "add", "row": {...}}`).
-Usually a rough list. Handle it simply:
-- Company + role → one row. Company only → Category Watchlist, Role empty.
-- "applied" or a date applied → Category Applied (waiting), Status Applied.
-  Nothing → To apply / Not Applied.
-- Dates without a year ("8/12") are fine; the script fills in the year.
-- Whatever else they wrote goes in Notes, word for word. A note like "pass" or
-  "too much python" is **their decision**: Category Passed.
-- **Added by: You** on every row.
+In **one** message: say what's running and that they don't need to wait ("I'm
+checking your inbox and finding each company's job board in the background.
+That takes about 5–10 minutes. Let's do your profile in the meantime."). Then:
 
-If it's a real tracker with its own columns, also:
-- split cells that list several roles into one row each
-- map their category/status values to ours
-- map their own ratings (if any) to a 1–10 Fit, with `"lock": ["Fit"]` on the op
+1. **Their list → `runs/setup/import.jsonl`** (`{"op": "add", "row": {...}}`
+   per line). Don't apply yet. Rules:
+   - Company + role → one row. Company only → Category Watchlist, Role empty.
+   - "applied" or a date → Applied (waiting) / Applied. Nothing → To apply / Not Applied.
+   - Dates without a year ("8/12") are fine; the script fills in the year.
+   - Their words go in Notes, word for word. "pass" or "too much python" →
+     Category Passed (**their** decision).
+   - **Never drop a row from their list**, even one that hits a dealbreaker.
+     Keep it, with a note.
+   - **Added by: You** on every row.
+   - A real tracker with its own columns: split multi-role cells, map their
+     values to ours, and map their own ratings to Fit with `"lock": ["Fit"]`.
+2. **`search_started`:** set it without asking. Use the earliest application
+   date in the list, or failing that 6 months ago. The inbox audit refines it.
+3. **Inbox audit** (if email is on): launch the **inbox-auditor** with
+   `run_in_background: true`. Rows = the import plus anything already tracked;
+   since = `search_started`; door-open pass over 3 years; output
+   `runs/<date>/inbox-changes.jsonl`.
+4. **Companies:** import the list's companies (`--relationship target`), then
+   run `uv run scripts/ats.py detect` in the background (Bash
+   `run_in_background`).
 
-### 5b. The inbox audit (if email is connected)
+## Step 3 of 5: Your profile
 
-Set `search_started` without asking: the earliest application date from 5a, or
-failing that the earliest application email in the last 12 months, or failing
-that 6 months ago. Say it in one line ("I'll search back to July 28, your
-earliest application. Tell me if you started earlier.").
+Five short rounds, one message each. Draft from what you already have, and ask
+the user to confirm or correct.
 
-Launch the **inbox-auditor**: rows = what 5a will add plus anything already in
-the tracker, since = `search_started`, door-open pass over 3 years, output
-`runs/<date>/inbox-changes.jsonl`. While it runs, do 5c.
+**Round 1: Background** → `profile/background.md`, `profile.yaml → industries, titles`
 
-### 5c. Companies
+A numbered draft (a few short bullets per section); corrections by number:
+1. **Positions you're qualified for today** (titles held, plus roles whose
+   day-to-day work they've clearly done)
+2. **Industries with significant experience**: real time in the space, enough
+   to talk shop with a customer there
+3. **What you're strongest at** (3–5 things, with proof)
+4. **Tools you've used for real**, and common requirements you **don't** have
 
-Write every company the user named (interviews, door-open, targets, warm
-networks, their list) to JSONL files by relationship and import them. Then
-detect job boards:
+**Round 2: Level** → `profile.yaml → level`
 
-```bash
-uv run scripts/ats.py import runs/setup/interviewed.jsonl --relationship interviewed
-uv run scripts/ats.py import runs/setup/targets.jsonl --relationship target
-# ... door_open, warm (their list's companies go in as target)
-uv run scripts/ats.py detect
-```
+A chat line first, for example: "From your resume, you're mid-level: about 4
+years in customer-facing technical roles." Then AskUserQuestion, "Which levels
+should I search for?" ("Mid-level only" / "Mid-level and senior" /
+"Senior only", adjusted to their level).
 
-Look up websites you don't know (WebSearch). To fix a board by hand:
-`uv run scripts/ats.py set --company X --ats lever --slug y` (or `--none`).
-Manual fixes are never re-guessed.
+Set `level.target` from the answer, and `level.exclude` to every level **two or
+more above** their highest target (target mid → exclude staff, principal,
+director, vp; target senior → exclude principal, director, vp). Never remove a
+level from `exclude` to let a stretch role through. `titles.stretch` already
+lets those titles pass on their own.
 
-### 5d. One plan, one approval
+**Round 3: Work setup and pay** → `profile.yaml → location, comp`
+
+One question per message:
+1. Where they live: city (infer the time zone and confirm it).
+2. AskUserQuestion, "How do you want to work?": **Remote only** ·
+   **Remote, or hybrid/in-office near where I live** · **Open to relocating
+   for the right role**.
+   - Near home → "Which cities would you go into an office in?"
+   - Relocating → "Where would you move? A few cities or regions, or 'anywhere
+     in the US'." Then: "Only if they help with moving costs?"
+3. "What's the lowest salary you'd consider? If a posting's whole pay range is
+   below that, I'll hide it. Postings without pay listed are kept." If their
+   positions span different kinds of roles: "Is that the same for every kind
+   of role?" Different answers go in `comp.by_title`.
+
+**Round 4: Dealbreakers** → `profile/dealbreakers.md` (+ `profile.yaml → exclude_companies`)
+
+"What would make you say no to a job, no matter how good it looks?" Anything
+listed **hides** a role completely. Examples that fit **their** field: kinds of
+companies (crypto, gambling, defense, adtech, government work), company size,
+requirements they can't meet, the work itself (travel, on-call, managing
+people), specific companies, or postings that say they don't sponsor visas,
+if they need sponsorship. A short list is fine.
+
+**Round 5: Job boards** → `profile/job-sources.md`
+
+> Here's where I look for jobs:
+> - **Companies' own career pages.** Every role is checked live there before
+>   it goes in your tracker.
+> - **Web searches** for companies like the ones that interviewed you
+> - **Startup job lists** anyone can open, like Y Combinator's
+>
+> Is there a job board you use that isn't listed? An industry community's
+> board, a newsletter's job list, an investor's portfolio board…
+>
+> 👉 **Your turn: paste any job board links, or say "that's it".**
+
+Check each link right away (WebFetch) and say plainly whether you can read it.
+For login-walled or blocked boards (LinkedIn Jobs, Wellfound, Otta): "I can't
+open that one, but you can paste listings from it any time." Record each one
+in `job-sources.md`.
+
+## Step 4 of 5: Your search so far
+
+If the inbox audit is still running, say so: "Your inbox check is almost done.
+Nothing for you to do; I'll show you what it found in about N minutes."
+
+### 4a. Confirm your history (one message)
+
+Build it from the list and the audit (`inbox-changes.jsonl`), then show it as a
+**numbered** list, grouped:
+
+> **Interviewing now**: 1. Acme · Solutions Engineer: 2nd round next week …
+> **Interviewed before**: 4. Globex · Sales Engineer: 3–4 rounds, rejected …
+> **They said "stay in touch"**: 7. …
+>
+> Plus N applications still waiting and N rejections, all going into your
+> tracker.
+>
+> 👉 **Your turn: reply "looks right", fix anything by number (e.g. "4: made
+> it to the final"), or add interviews I missed.**
+
+- No email: build it from their list alone. No list either: first ask "Which
+  roles did you apply to and get at least one interview for? Company and role
+  is enough", then confirm in the same format.
+- Afterwards, write interviews to `profile/signals.md`, and set relationships:
+  `uv run scripts/ats.py set --company X --relationship interviewed` (or
+  `door_open`). Import any new companies first.
+
+### 4b. Check your targets (one message)
+
+From the resume and the **confirmed** interviews, show positions in three
+groups:
+
+> **Proven** (you got interviews): …
+> **Plausible** (you applied, and your resume supports it): …
+> **Stretch** (your resume doesn't clearly support it; these score lower): …
+>
+> 👉 **Your turn: reply "looks right", or move anything between groups. Optional:
+> add companies you'd love to work at, or postings you've seen and liked.**
+
+Applying alone isn't proof. Kept stretch positions go into `titles.stretch`
+(scored lower, never hidden by the level filter); dropped ones are removed.
+Then **show the final title list and levels in the chat**, and run the
+self-check: for each kept position, make a sample title ("Head of Developer
+Relations") and check it against the title, stretch and level rules. Fix and
+mention any that would be filtered out.
+
+### 4c. Fill the tracker (one approval)
+
+Connector backend: read the sheet first (CLAUDE.md → Writing the tracker).
 
 ```bash
 uv run scripts/tracker.py pull
-uv run scripts/tracker.py plan --changes runs/setup/import.jsonl runs/<date>/inbox-changes.jsonl --ghosted
+uv run scripts/tracker.py plan --changes runs/setup/import.jsonl runs/<date>/inbox-changes.jsonl runs/<date>/changes.jsonl --ghosted
 ```
 
-Show in the chat, before asking:
-- **From your list:** N rows (N applied, N to apply, N passed)
-- **From your inbox:** N applications you hadn't tracked, N status changes
-  (rejections, interviews, door-open), N marked ghosted. Name the most
-  important few, e.g. upcoming interviews.
-- **Need your input:** rows with no role title, recruiter outreach that isn't
-  logged, applications that conflict with a dealbreaker (kept as Applied, with
-  a note)
-- **Job boards:** "Found job boards for 26 of 31 companies. For Acme,
-  Globex and Initech I'll check their careers pages by hand." For any
-  `guessed` board, list its link (e.g. `https://jobs.ashbyhq.com/<slug>`) and
-  ask whether it's the right company.
+(Queue the user's corrections from 4a as `tracker.py change` ops first.)
+Show **in the chat**:
+- **Adding:** N from your list, N found in your inbox. Updating N. N marked
+  ghosted.
+- **Need your input** (numbered): rows with no role title, interviews that
+  look stalled, applications that conflict with a dealbreaker (kept, with a
+  note), guessed job boards (with their link: "is this the right company's
+  jobs page?"), companies whose careers page I'll check by hand.
 
-Ask once ("Add all of this?"), then apply, and give the tracker link again
-("Your tracker now has 90 rows: [Job Hunt Tracker](…)").
+👉 **Your turn: reply "add it all", or tell me what to change.** Then apply,
+finish the write, and send the link again: "Your tracker now has 78 rows:
+[Job Hunt Tracker](…)".
 
-## Step 6 of 6: What's next
+## Step 5 of 5: What's next
 
 Keep it short. Open the tracker for them (CSV: `open tracker/jobs.csv`; Sheet:
-the clickable link, and offer `! open "<link>"` to open it in the browser).
+the clickable link, and offer `! open "<link>"`).
 
 1. **What's set up**, three lines: profile, email (yes/no), tracker (link or
    path) with its row count.
-2. **Your next three things**, taken from the tracker: e.g. an interview
-   coming up (offer `/apply` to prep), a follow-up that's due, a door-open
-   company worth re-contacting.
-3. **The routine**: `/find-jobs` finds new companies and roles (about 15–25
-   minutes) · `/refresh-tracker` once or twice a week · `/apply` for any role.
-4. If you logged script problems, one line: "I noted a couple of script issues
-   in runs/setup/issues.md."
+2. **Your next three things**, from the tracker: e.g. an interview coming up
+   (offer `/apply` to prep), a follow-up that's due, a door-open company worth
+   re-contacting.
+3. **The routine**: `/find-jobs` finds new companies and roles · `/refresh-tracker`
+   once or twice a week · `/apply` for any role.
+4. If you logged script problems: "I noted a couple of script issues in
+   runs/setup/issues.md."
 5. Last line, in bold: 👉 **Your turn: run /find-jobs to find new roles that fit you.**

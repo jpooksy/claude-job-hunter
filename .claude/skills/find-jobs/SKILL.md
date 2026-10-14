@@ -5,22 +5,29 @@ description: Find new roles that fit the user. Researches companies similar to t
 
 # Find jobs
 
-The pipeline keeps LLM work to the parts that need judgment:
+The pipeline keeps LLM work to the parts that need judgment, and runs
+independent work **at the same time** instead of one stage after another:
 
 ```
-research companies (agents) → import + detect boards (script) → fetch all postings (script)
-→ filter (script) → read postings (jd-reader agents) → score (script) → plan → confirm → apply
+                 ┌─ research new companies (agents, ~5 min) ─→ import + detect → fetch --new → filter --append → read → ┐
+preflight → fetch known boards → filter → read postings (jd-readers) ──────────────────────────────────────────────────→ score → plan + gut check → apply
+                 └─ careers pages of companies without a board (agent) → filter --append → read ────────────────────────┘
 ```
 
 Everything lands in `runs/<date>/`, so a crashed step can be re-run without
 redoing the rest. Use today's date for `<date>`.
 
-Tell the user up front what this does and roughly how long it takes ("I'll
-look for companies like the ones that interviewed you, then read their open
-roles against your resume. This takes about 15–25 minutes. I'll check in
-when I have results."). Give a one-line status at each stage. Every role found
+Tell the user up front what this does and how long it takes ("I'll look for
+companies like the ones that interviewed you and read their open roles against
+your resume. About 10–15 minutes. Nothing for you to do until I show you the
+results."). Give a one-line status when each stage finishes. Every role found
 here is a **recommendation**: it goes in the tracker with **Added by: Claude**,
 and only after the user says yes.
+
+**Agents run in the background** (`run_in_background: true`). Launch
+independent agents in **one message**, keep working while they run, and pick
+up each result when it arrives. Never sit idle waiting for one agent if other
+work is ready.
 
 ## 0. Preflight
 
@@ -36,69 +43,77 @@ Mention any hand edits `pull` reports, in one line ("you marked 3 roles
 Passed since last time; I'll leave them alone").
 
 If the user only wants **new roles at companies already on the list** ("any
-new postings?"), skip to step 3.
+new postings?"), do step 1 only, then steps 4–6.
 
-## 1. Research new companies
+## 1. Start everything that doesn't depend on research
+
+Do these first, in this order, without waiting in between:
+
+1. **Fetch known boards and filter:**
+   ```bash
+   uv run scripts/ats.py fetch
+   uv run scripts/filter.py
+   ```
+2. **In one message, launch in the background:**
+   - one **jd-reader** per batch printed by filter (batches of 6; up to 10
+     readers at a time). Each gets its batch path and output path
+     `runs/<date>/extract/<batch-name>.jsonl`.
+   - the **company-researchers** (step 2)
+   - the **careers-page check** (step 3), if any companies are `no_ats`
+
+## 2. Research new companies (background)
 
 Read `profile/signals.md`, `targets.md`, `background.md` and
-`warm-networks.md`. Group the signal and target companies into **2–4 themes**
+`job-sources.md`. Group the signal and target companies into **2–4 themes**
 by what they sell and who buys it (e.g. "modern data stack tools sold to
 analytics engineers", "developer APIs sold to app developers"). If
-warm-networks.md lists portfolio job boards, add a "warm networks" theme.
-Tell the user the themes, one line each.
+job-sources.md lists readable job boards, add a "job boards" theme whose
+researcher goes through those boards for companies. **Show the user the themes,
+one line each**, in the same message that launches them.
 
-Launch one **company-researcher** agent per theme, **all in one message** so
-they run in parallel. Give each one:
+Give each **company-researcher**:
 - the theme, plus the signal companies it's based on
+- the **other themes' names**, so they don't overlap
 - `data/exclude.txt`
 - output file `runs/<date>/research/<theme-slug>.jsonl`
 - count: 15–25
 
-When they finish:
+As soon as a researcher finishes (don't wait for all of them):
 
 ```bash
-uv run scripts/ats.py import runs/<date>/research/*.jsonl
+uv run scripts/ats.py import runs/<date>/research/<theme-slug>.jsonl
 uv run scripts/ats.py detect
+uv run scripts/ats.py fetch --new
+uv run scripts/filter.py --append
 ```
+
+Then launch jd-readers for the **new** batches it prints. Companies found on a
+job board come in as `research` (the board isn't a personal connection).
+
+If detect guessed a board wrong and you fix it with `ats.py set`, fetch that
+company right away (`uv run scripts/ats.py fetch --company "<name>"`), then
+`filter.py --append`. Otherwise its postings are never read.
 
 If an agent produced nothing or died, re-run just that theme.
 
-## 2. Companies without a supported job board
+## 3. Companies without a supported job board (background)
 
 `detect` marks companies with no Greenhouse, Ashby, Lever or Workable board as
-`no_ats`. For up to ~10 of them, most promising first, open the careers page
-(`careers_url` or the domain + /careers) with WebFetch and look for titles
-matching `profile.yaml → titles.include`. For each match, fetch the posting and
-append a line to `runs/<date>/postings-manual.jsonl`:
+`no_ats`. One **general-purpose** agent checks the careers pages of up to ~10 of
+them, most promising first (`careers_url`, or the domain + /careers), and looks
+for titles matching `profile.yaml → titles.include`. For each match it opens the
+posting and appends a line to `runs/<date>/postings-manual.jsonl`:
 
 ```json
 {"id": "web:<company-slug>:<role-slug>", "company": "...", "title": "...", "url": "<posting URL you opened>", "location": "...", "workplace": "remote|hybrid|onsite|unknown", "comp_min": null, "comp_max": null, "comp_currency": null, "description": "<posting text>"}
 ```
 
-Only add postings you actually opened. Never construct a URL you didn't visit.
+Only postings it actually opened. Never a URL it didn't visit. When it's done,
+run `uv run scripts/filter.py --append` and read the new batch.
 
-## 3. Fetch, filter
+## 4. Score
 
-```bash
-uv run scripts/ats.py fetch
-uv run scripts/filter.py
-```
-
-`filter.py` prints what it dropped and why. If a big bucket looks wrong (e.g.
-"title: not a target title" dropped roles the user would want), fix
-`titles.include` in profile.yaml and re-run filter. Mention the fix.
-
-More than ~12 batches (120+ candidates)? Process the 12 batches from the
-companies with the strongest relationship first. The rest stay unjudged and
-get picked up next run.
-
-## 4. Read the postings
-
-Launch one **jd-reader** per batch file, up to 6 at a time, all in one message.
-Each gets its batch path and output path `runs/<date>/extract/<batch-name>.jsonl`.
-If there are more batches, run a second wave after the first finishes.
-
-## 5. Score
+When every batch has its extract file:
 
 ```bash
 uv run scripts/score.py
@@ -108,35 +123,27 @@ If it reports postings "not read yet", re-run the jd-reader for the batches
 whose extract files are missing or short, then run score.py again. It only
 scores what hasn't been scored.
 
-## 6. Gut check (first run only)
-
-If the tracker has no **Added by: Claude** rows yet, this is the first search.
-Before planning, show the top 10 scored roles **in the chat** as a numbered
-list (score, company, role, one-line reason), and ask:
-
-> Before I add these: are there any you'd **never** apply to?
->
-> 👉 **Your turn: reply with their numbers and a word on why (e.g. "3, 7: too senior"), or "all good".**
-
-Turn each "why" into a rule (CLAUDE.md → Feedback → files), re-run
-`uv run scripts/score.py --dry-run` on this run's extractions to show what
-changed, then continue. Only one round. Don't ask for numeric scores.
-
-## 7. Plan → confirm → apply
+## 5. Plan, with the gut check built in (one approval)
 
 ```bash
 uv run scripts/tracker.py plan --scored runs/<date>/scored.jsonl
 ```
 
-Show the user, **in the chat**:
-- how many companies were researched / new, postings fetched, candidates read
-- the top roles (score, company, role, one-line reasoning)
+Show the user, **in the chat**, using the numbers the scripts printed (never
+your own estimates):
+- companies researched (new), postings fetched, candidates read, roles to add
+- the roles to add, **numbered**: score, company, role, one-line reason
 - the main drop reasons, with counts. Call out any dealbreaker that removed a
   lot, in case it's too broad.
 
-Ask before applying. Adding everything is the default; the user may want to
-skip low scores. To skip a row, remove its line from scored.jsonl and re-plan.
-Then:
+Then one ask, which also serves as the gut check:
+
+👉 **Your turn: reply "add them", or give the numbers of any you'd never apply
+to, with a word on why (e.g. "3, 7: too senior").**
+
+Turn each "why" into a rule (CLAUDE.md → Feedback → files) **after telling the
+user what you'll change**. Drop those rows from scored.jsonl, re-plan, and
+apply:
 
 ```bash
 uv run scripts/tracker.py apply
@@ -151,6 +158,11 @@ in bold, e.g. 👉 **Your turn: pick any role you like and run /apply for help a
 - Every row needs a posting URL fetched **in this run**. No URL, no row.
 - Don't re-score or edit rows already in the tracker here. That's
   /refresh-tracker's job.
+- **Never change the user's profile files without asking.** If filter's
+  near-misses suggest widening `titles.include`, propose it ("Should I also
+  include 'Customer Engineer'?") and wait for a yes.
 - If the user reacts to results ("no crypto", "that's too senior", "score dev
   tools higher"), update the profile files right away (see CLAUDE.md →
   Feedback), then re-run `score.py` / `filter.py` as needed.
+- Use `uv run` for every script. Never use plain `python`. Log any script
+  problem you work around to `runs/<date>/issues.md`.

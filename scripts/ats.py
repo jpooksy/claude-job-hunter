@@ -11,8 +11,9 @@ status=no_ats and the find-jobs skill checks their careers page by hand.
 Usage:
   uv run scripts/ats.py import FILE.jsonl... [--relationship research]  # add companies, skipping known ones
   uv run scripts/ats.py set --company NAME (--ats lever --slug acme | --none)  # fix a board by hand
+  uv run scripts/ats.py set --company NAME --relationship interviewed          # update the relationship
   uv run scripts/ats.py detect [--all | --company NAME]   # fill ats/slug in data/companies.csv
-  uv run scripts/ats.py fetch [--company NAME]            # all postings -> runs/<date>/postings.jsonl
+  uv run scripts/ats.py fetch [--company NAME ...] [--new] # postings -> runs/<date>/postings.jsonl
   uv run scripts/ats.py verify                            # tracked roles -> runs/<date>/verify.jsonl
 """
 
@@ -205,6 +206,12 @@ def cmd_set(args):
     if not hit:
         sys.exit(f"{args.company} isn't in data/companies.csv. Import it first.")
     r = hit[0]
+    if args.relationship:
+        r["relationship"] = args.relationship
+    if args.relationship and not (args.none or args.ats):  # only the relationship changes
+        save_companies(rows)
+        print(f"{r['company']}: relationship {r['relationship']}")
+        return
     if args.none:
         r.update({"ats": "", "slug": "", "detect": "manual", "status": "no_ats"})
     else:
@@ -238,9 +245,10 @@ def _slug_guesses(row: dict) -> list[str]:
     dom = (row.get("domain") or "").split("/")[0]
     stem = dom.split(".")[0] if dom else ""
     base = re.sub(r"\(.*?\)", "", name).strip()
-    cands = [norm_company(base), re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-"),
-             re.sub(r"[^a-z0-9]", "", base.lower()), stem, f"{norm_company(base)}hq",
-             f"{norm_company(base)}inc", f"{norm_company(base)}labs"]
+    n = norm_company(base)
+    cands = [n, re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-"),
+             re.sub(r"[^a-z0-9]", "", base.lower()), stem, dom.lower(),  # e.g. "qdrant.tech"
+             f"{n}hq", f"{n}labs", f"{n}-data", f"{n}data", f"{n}ai", f"get{n}"]
     seen, out = set(), []
     for c in cands:
         if c and c not in seen:
@@ -303,7 +311,7 @@ def cmd_detect(args):
     if args.company:
         targets = [r for r in rows if eligible(r) and norm_company(r["company"]) == norm_company(args.company)]
     print(f"Detecting job boards for {len(targets)} companies...", file=sys.stderr)
-    with ThreadPoolExecutor(8) as ex:
+    with ThreadPoolExecutor(16) as ex:
         results = list(ex.map(detect_one, targets))
     by_key = {norm_company(r["company"]): r for r in results}
     merged = [by_key.get(norm_company(r["company"]), r) for r in rows]
@@ -336,8 +344,13 @@ def _fetch_company(row: dict):
 
 def cmd_fetch(args):
     rows = [r for r in load_companies() if r.get("ats") and r.get("status") == "active"]
+    path = run_dir() / "postings.jsonl"
     if args.company:
-        rows = [r for r in rows if norm_company(r["company"]) == norm_company(args.company)]
+        wanted = {norm_company(c) for c in args.company}
+        rows = [r for r in rows if norm_company(r["company"]) in wanted]
+    if args.new:  # only boards not fetched yet in this run, appended to postings.jsonl
+        done = {norm_company(p["company"]) for p in read_jsonl(path)}
+        rows = [r for r in rows if norm_company(r["company"]) not in done]
     print(f"Fetching boards for {len(rows)} companies...", file=sys.stderr)
     out, errors = [], []
     with ThreadPoolExecutor(8) as ex:
@@ -346,8 +359,11 @@ def cmd_fetch(args):
                 errors.append(row["company"])
             else:
                 out.extend(jobs)
-    path = run_dir() / "postings.jsonl"
-    write_jsonl(path, out)
+    if args.company and not args.new:  # replace just these companies' postings
+        keep = [p for p in read_jsonl(path) if norm_company(p["company"]) not in wanted]
+        write_jsonl(path, keep + out)
+    else:
+        write_jsonl(path, out, append=args.new)
     print(f"{len(out)} postings from {len(rows) - len(errors)} boards -> {path}")
     if errors:
         print("Board fetch failed (slug changed? re-run detect --company): " + ", ".join(errors))
@@ -423,11 +439,14 @@ def main():
     st.add_argument("--slug")
     st.add_argument("--none", action="store_true", help="no supported board; check the careers page by hand")
     st.add_argument("--careers-url")
+    st.add_argument("--relationship", choices=["interviewed", "door_open", "warm", "target", "research"],
+                    help="e.g. after the user confirms they interviewed there")
     d = sub.add_parser("detect")
     d.add_argument("--all", action="store_true", help="re-detect companies that already have a board")
     d.add_argument("--company")
     f = sub.add_parser("fetch")
-    f.add_argument("--company")
+    f.add_argument("--company", nargs="+", help="fetch just these (e.g. after `set` fixed their boards)")
+    f.add_argument("--new", action="store_true", help="only boards not fetched yet in this run; append")
     sub.add_parser("verify")
     args = ap.parse_args()
     {"import": cmd_import, "set": cmd_set, "detect": cmd_detect, "fetch": cmd_fetch, "verify": cmd_verify}[args.cmd](args)

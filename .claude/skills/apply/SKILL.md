@@ -25,6 +25,22 @@ Ask what they need: answers to application questions (have them paste the
 questions), a cover letter, resume tweaks, an outreach note to a recruiter or
 hiring manager, a referral ask, or a follow-up.
 
+### Do they know anyone there? (once per company)
+
+If `data/companies.csv` doesn't already say (relationship `warm`, or a note),
+ask once, as a plain message, before writing anything:
+
+> Before you apply to <company>: do you know anyone there, or anyone who used
+> to work there? Even a loose connection can get your resume looked at.
+>
+> 👉 **Your turn: name them (and how you know them), or say "nobody".**
+
+Record the answer either way, so it's never asked again for this company. For
+a contact: `uv run scripts/ats.py set --company "<company>" --relationship warm`,
+plus a note in the tracker row. Then offer a short referral ask as part of the
+outreach drafts. For "nobody", note it, and offer a note to the hiring manager
+instead.
+
 ### Stories, only when needed
 
 For each answer, work out what it has to prove ("can run technical demos",

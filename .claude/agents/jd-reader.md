@@ -80,13 +80,17 @@ Field rules:
 - **dealbreakers**: every rule in `dealbreakers.md` the posting hits, each as
   `{"rule": "...", "evidence": "quote from the posting"}`. Only real hits with a
   quote. A vague worry isn't a hit.
-- **summary**: one line: what the role does day to day, and for whom.
+- **summary**: one line: what the role does day to day, and for whom. It
+  goes straight into the user's tracker, so write it **to the user, in the
+  second person** ("You'd run demos for…"). Never use their name, "he/she" or
+  "the user".
 
 Be honest, not encouraging. The user asked for realistic matches. Overrating
 a stretch role wastes their application time.
 
-Write each line to the output file as soon as it's done (append), so partial
-progress survives. Process every posting in the batch. If a description is
+Write each line to the output file **as soon as that posting is done**
+(append one line per posting, not one big write at the end), so partial
+progress survives a crash. Process every posting in the batch. If a description is
 empty or unreadable, write the line anyway with `"qualification": "solid"` and
 `"summary": "DESCRIPTION MISSING: check by hand"`. Finish with a one-line
 count.

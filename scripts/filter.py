@@ -12,8 +12,13 @@ jd-reader can make the call with the full description.
 
 Survivors are split into batch files for jd-reader agents.
 
+--append runs it again later in the same run (e.g. after newly researched
+companies were fetched): postings already in this run's candidates are skipped,
+and new batches continue the numbering, so batches already being read are
+never touched.
+
 Usage:
-  uv run scripts/filter.py [--date YYYY-MM-DD] [--batch-size 10]
+  uv run scripts/filter.py [--date YYYY-MM-DD] [--batch-size 6] [--append]
 """
 
 from __future__ import annotations
@@ -60,8 +65,12 @@ def reason_to_drop(p: dict, prof: dict) -> str | None:
         return f"title: excluded ({hit})"
 
     level = level_from_title(title)
-    if level in ((prof.get("level") or {}).get("exclude") or []) and not stretch:
-        return f"level: {level} excluded"
+    excluded = (prof.get("level") or {}).get("exclude") or []
+    if level in excluded:
+        # A stretch title (e.g. "head of devrel") only unlocks the level it implies
+        # itself, not every senior variant of a broad pattern ("Staff Solutions Architect").
+        if not stretch or level != level_from_title(re.sub(r"[\\()?|\[\]^$.*+]", " ", stretch)):
+            return f"level: {level} excluded"
 
     if norm_company(p["company"]) in {norm_company(c) for c in prof.get("exclude_companies") or []}:
         return "company: excluded"
@@ -73,6 +82,9 @@ def reason_to_drop(p: dict, prof: dict) -> str | None:
     in_country = bool(_any(loc.get("country_markers"), where))
     if _any(loc.get("exclude_location_patterns"), where) and not in_country:
         return f"location: {where}"
+    # Region in the title ("Solutions Engineer - EMEA") even when the location just says "Remote".
+    if _any(loc.get("exclude_location_patterns"), title) and not _any(loc.get("country_markers"), title):
+        return f"location: {title}"
     if loc.get("remote") == "required" and p.get("workplace") in ("onsite", "hybrid"):
         ok_metros = [re.escape(m) for m in (loc.get("onsite_ok_metros") or []) + [
             r for r in relocate if not str(r).lower().startswith("anywhere")]]
@@ -91,7 +103,8 @@ def reason_to_drop(p: dict, prof: dict) -> str | None:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--date")
-    ap.add_argument("--batch-size", type=int, default=10)
+    ap.add_argument("--batch-size", type=int, default=6)
+    ap.add_argument("--append", action="store_true", help="add new batches to this run, keep existing ones")
     args = ap.parse_args()
 
     prof = load_profile()
@@ -109,10 +122,20 @@ def main():
     # on company + title to avoid re-reading roles the user already tracks.
     tracked_names = {(norm_company(r.get("Company", "")), _norm_title(r.get("Role", ""))) for r in tracked}
 
+    earlier = read_jsonl(rd / "candidates.jsonl") if args.append else []
+    in_run = {c["id"] for c in earlier}
+    seen_names = {(norm_company(c["company"]), _norm_title(c["title"])) for c in earlier}
+
     keep, dropped, counts = [], [], {}
     for p in postings:
-        if p["id"] in known or (norm_company(p["company"]), _norm_title(p["title"])) in tracked_names:
+        name = (norm_company(p["company"]), _norm_title(p["title"]))
+        if p["id"] in in_run:
+            continue  # already a candidate in this run
+        if p["id"] in known or name in tracked_names:
             counts["already tracked or judged"] = counts.get("already tracked or judged", 0) + 1
+            continue
+        if name in seen_names:  # the same role posted twice (e.g. two locations)
+            counts["duplicate in this run"] = counts.get("duplicate in this run", 0) + 1
             continue
         why = reason_to_drop(p, prof)
         if why:
@@ -122,19 +145,27 @@ def main():
         else:
             p["title_level"] = level_from_title(p["title"])
             keep.append(p)
+            seen_names.add(name)
 
-    write_jsonl(rd / "filtered_out.jsonl", dropped)
-    write_jsonl(rd / "candidates.jsonl", keep)
+    write_jsonl(rd / "filtered_out.jsonl", dropped, append=args.append)
+    write_jsonl(rd / "candidates.jsonl", keep, append=args.append)
     bdir = rd / "batches"
     bdir.mkdir(exist_ok=True)
-    for old in bdir.glob("batch-*.jsonl"):
-        old.unlink()
-    n = 0
+    existing = sorted(bdir.glob("batch-*.jsonl"))
+    if not args.append:
+        for old in existing:
+            old.unlink()
+        existing = []
+    start = len(existing)
+    new_batches = []
     for i in range(0, len(keep), args.batch_size):
-        n += 1
-        write_jsonl(bdir / f"batch-{n:02d}.jsonl", keep[i:i + args.batch_size])
+        path = bdir / f"batch-{start + len(new_batches) + 1:02d}.jsonl"
+        write_jsonl(path, keep[i:i + args.batch_size])
+        new_batches.append(path.name)
 
-    print(f"{len(postings)} postings -> {len(keep)} candidates in {n} batches ({bdir})")
+    print(f"{len(postings)} postings -> {len(keep)} new candidates in {len(new_batches)} batches ({bdir})")
+    if new_batches:
+        print("  new batches: " + ", ".join(new_batches))
     for k, v in sorted(counts.items(), key=lambda kv: -kv[1]):
         print(f"  dropped {v:>5}  {k}")
     by_co: dict[str, int] = {}

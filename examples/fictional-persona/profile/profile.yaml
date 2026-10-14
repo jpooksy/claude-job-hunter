@@ -11,7 +11,7 @@ location:
   relocation_help_required: false
   preferred_metros: [Denver, Boulder]
   exclude_location_patterns:
-    - '\b(EMEA|APAC|APJ|LATAM|ANZ)\b'
+    - '\b(EMEA|APAC|APJ|LATAM|ANZ|Europe|European|Asia|Asia-Pacific|Middle East)\b'
     - '\b(UK|United Kingdom|London|Ireland|Dublin|Germany|Berlin|Munich|France|Paris|Netherlands|Amsterdam|Spain|Madrid|Barcelona|Portugal|Lisbon|Poland|Sweden|Switzerland|Zurich|Italy|Milan|Rome|Belgium|Brussels|Austria|Vienna|Denmark|Copenhagen|Norway|Oslo|Finland|Helsinki|Czech|Prague|Romania|Bucharest|Ukraine|Kyiv|Turkey|Istanbul|Greece|Athens|Estonia|Serbia|Belgrade)\b'
     - '\b(Israel|Tel Aviv|UAE|Dubai|Abu Dhabi|Saudi|Riyadh|Qatar|Doha|Egypt|Cairo|South Africa|Cape Town|Johannesburg|Nigeria|Lagos|Kenya|Nairobi|Middle East|MENA)\b'
     - '\b(India|Bangalore|Bengaluru|Hyderabad|Pune|Singapore|Japan|Tokyo|Australia|Sydney|Melbourne|Korea|Seoul|China|Shanghai|Beijing|Hong Kong|Taiwan|Taipei|Philippines|Manila|Indonesia|Jakarta|Vietnam|Thailand|Bangkok|Malaysia|Kuala Lumpur|New Zealand|Auckland)\b'
@@ -28,7 +28,7 @@ comp:
 level:
   current: mid
   target: [mid]
-  exclude: [director, vp, principal]
+  exclude: [staff, principal, director, vp]
 
 titles:
   include:

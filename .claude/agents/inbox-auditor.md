@@ -75,18 +75,27 @@ Rules that keep the tracker trustworthy:
   if the user replied (Status In Conversation), and otherwise mention it in
   your report.
 - **Always find the role title.** Open the confirmation email (or the job link
-  in it) to get the exact title. If it truly isn't there, leave Role empty
+  in it) to get the exact title. If the title appears anywhere in the thread,
+  or in the note you're writing, put it in Role. A partial title beats none
+  ("Growth (unconfirmed)"). Only if it truly isn't anywhere, leave Role empty
   and list the row under "Need a title" in your report.
 - **Never set Category "Passed".** That's the user's own decision not to
   apply, so it can't come from email. If an application conflicts with their
   dealbreakers, keep it as Applied and add a note ("conflicts with
   dealbreaker: enterprise sales").
+- **Interviews with no recent activity** (no email in 30+ days, or follow-ups
+  with no reply): keep the status, add a note ("no reply since 2026-08-26"),
+  and list them under "Likely stalled" in your report. With no evidence of an
+  interview at all, don't mark it Interviewing.
 - **Rejection reasons matter.** If the email says why (e.g. "we need someone
   on Eastern time"), put it in the note. Later searches use it.
 
 Only write an op when an email supports it, and cite the date and what the
 email said in `append_notes`. Never write email bodies or recruiters' contact
 details. If nothing changed for a row, write nothing for it.
+
+**Use only the Gmail tools.** Don't use Calendar, Drive or any other connector;
+the user agreed to email access only.
 
 **Privacy**: you're reading personal email. Look only at job-search messages.
 Don't open, summarize or quote anything unrelated.
@@ -95,4 +104,5 @@ End with a short report:
 - rows checked, and ops written by type
 - **Need a title**: rows added without a role title
 - recruiter outreach you didn't log (company + date)
+- **Likely stalled**: interviews with no activity for 30+ days
 - any thread you couldn't classify (company + date only)

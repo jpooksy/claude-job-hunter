@@ -61,6 +61,7 @@ LOCKS = TRACKER_DIR / "locks.json"  # fields/rows you edited by hand; kept until
 CSV_PATH = TRACKER_DIR / "jobs.csv"
 CONNECTOR_READ = TRACKER_DIR / "connector-read.json"
 CONNECTOR_WRITE = TRACKER_DIR / "connector-write.json"
+CONNECTOR_VERIFY = TRACKER_DIR / "connector-verify.json"  # read-back of just the written ranges
 PENDING = TRACKER_DIR / ".pending.csv"
 TAB = "Jobs"
 CHUNK_ROWS = 40
@@ -357,6 +358,7 @@ class ConnectorBackend:
         if not values:
             return [], None
         header = [str(h) for h in values[0]]
+        self._prev = (header, [[str(x) for x in v] for v in values[1:]])  # sheet as it is, in order
         rows = [{h: (str(v[i]) if i < len(v) else "") for i, h in enumerate(header)} for v in values[1:]]
         return clean(rows), header
 
@@ -371,13 +373,33 @@ class ConnectorBackend:
         return "'" + v
 
     def write(self, rows: list[dict], header: list[str]) -> None:
+        """Only rows that changed are sent, and nothing is cleared before the new
+        values are in place, so an interrupted write never leaves the sheet empty."""
         last_col = _col_letter(len(header))
-        values = [header] + [[self._cell(h, r.get(h, "")) for h in header] for r in rows]
-        steps = [{"tool": "batch_clear_values", "spreadsheetId": self.sheet_id, "ranges": [f"{TAB}!A1:Z"]}]
-        for i in range(0, len(values), CHUNK_ROWS):
-            chunk = values[i:i + CHUNK_ROWS]
+        plain = [[r.get(h, "") for h in header] for r in rows]
+        prev_header, prev = getattr(self, "_prev", (None, None))
+        if prev_header == header and prev is not None:
+            pad = lambda v: (v + [""] * len(header))[:len(header)]  # noqa: E731
+            dirty = [i for i, row in enumerate(plain) if i >= len(prev) or pad(prev[i]) != row]
+        else:
+            dirty = list(range(-1, len(plain)))  # -1 = the header row; rewrite everything
+        # Group changed rows into ranges (bridging gaps of up to 2 unchanged rows).
+        groups: list[list[int]] = []
+        for i in dirty:
+            if groups and i - groups[-1][-1] <= 3 and len(groups[-1]) < CHUNK_ROWS:
+                groups[-1].extend(range(groups[-1][-1] + 1, i + 1))
+            else:
+                groups.append([i])
+        steps = []
+        for g in groups:
+            vals = [header if i == -1 else [self._cell(h, rows[i].get(h, "")) for h in header] for i in g]
+            first, last = g[0] + 2, g[-1] + 2  # sheet rows: 1 = header, data starts at 2
             steps.append({"tool": "update_values", "spreadsheetId": self.sheet_id,
-                          "range": f"{TAB}!A{i + 1}:{last_col}{i + len(chunk)}", "values": chunk})
+                          "range": f"{TAB}!A{first}:{last_col}{last}", "values": vals})
+        old_len = len(prev) if prev is not None else None
+        if old_len is None or old_len > len(rows):  # clear leftover rows below the new end
+            steps.append({"tool": "batch_clear_values", "spreadsheetId": self.sheet_id,
+                          "ranges": [f"{TAB}!A{len(rows) + 2}:Z"]})
         CONNECTOR_WRITE.write_text(json.dumps({"spreadsheetId": self.sheet_id, "steps": steps},
                                               indent=1, ensure_ascii=False))
         write_csv(PENDING, rows, header)
@@ -569,8 +591,13 @@ def cmd_plan(args):
         ops += read_jsonl(Path(p))
     if args.verify:
         ops += ops_from_verify(read_jsonl(Path(args.verify)), live_by_id)
+    stalled = []
     if args.ghosted:
-        ops += ops_ghosted(live, (prof.get("tracker") or {}).get("ghosted_after_days", 30))
+        days = (prof.get("tracker") or {}).get("ghosted_after_days", 30)
+        ops += ops_ghosted(live, days)
+        cutoff = (dt.date.today() - dt.timedelta(days=days)).isoformat()
+        stalled = [r for r in live if r.get("Status") in ("Interviewing", "In Conversation")
+                   and (r.get("Last updated") or "") <= cutoff]
 
     planned, skipped = [], []
     for op in ops:
@@ -627,7 +654,7 @@ def cmd_plan(args):
     adds = [o for o in planned if o["op"] == "add"]
     upds = [o for o in planned if o["op"] == "update"]
     dels = [o for o in planned if o["op"] == "delete"]
-    lb = {r["ID"]: r for r in live}
+    lb = {r["ID"]: r for r in live} | {o["row"]["ID"]: o["row"] for o in planned if o["op"] == "add"}
     print(f"Plan -> {path}\n  {len(adds)} add, {len(upds)} update, {len(dels)} delete, {len(skipped)} skipped")
     for o in adds[: args.show]:
         r = o["row"]
@@ -644,6 +671,9 @@ def cmd_plan(args):
     for s in skipped:
         r = lb.get(s.get("id") or "", {}) or s.get("row", {})
         print(f"  ! skipped {r.get('Company', s.get('id'))} / {r.get('Role', '')}: {s['why']}")
+    for r in stalled:
+        print(f"  ? likely stalled (no activity since {r.get('Last updated') or '?'}): "
+              f"{r.get('Company')} / {r.get('Role')}. Ask the user; don't change it automatically")
 
 
 def cmd_apply(args):
@@ -685,27 +715,37 @@ def cmd_apply(args):
         elif op["op"] == "delete":
             rows.pop(op["id"], None)
     out = [rows[i] for i in order if i in rows]
-    if (prof.get("tracker") or {}).get("sort", True):
+    # A Google Sheet via the connector keeps its own row order (new rows go at the
+    # end; sort with the sheet's filter), so a write only touches changed rows.
+    if (prof.get("tracker") or {}).get("sort", True) and not isinstance(b, ConnectorBackend):
         out = sort_rows(out)
     hdr = header_for(out, header)
     b.write(out, hdr)
     if isinstance(b, ConnectorBackend):
         LOCKS.write_text(json.dumps(locks, indent=2))
         path.rename(path.with_suffix(".pending.json"))
-        n = len(json.loads(CONNECTOR_WRITE.read_text())["steps"])
+        steps = json.loads(CONNECTOR_WRITE.read_text())["steps"]
+        n = len(steps)
+        if not steps:
+            print("Nothing changed in the sheet.")
+        ranges = [st["range"] for st in steps if st["tool"] == "update_values"]
         print(f"Planned {len(plan['ops'])} ops ({len(out)} rows). Now, with the Google Sheets connector:\n"
               f"  1. send the {n} steps in {CONNECTOR_WRITE} in order, copying each step's fields verbatim\n"
-              f"  2. {b.read_instructions()}\n"
+              f"  2. read back only what you wrote: get_values for each of {ranges}, and save the\n"
+              f"     results as a JSON list, verbatim, to {CONNECTOR_VERIFY}\n"
               f"  3. run: uv run scripts/tracker.py verify-write")
         return
     finalize(b, plan, path, hdr, locks)
 
 
-def finalize(b, plan: dict, path: Path, hdr: list[str], locks: dict) -> None:
-    after, _ = b.read()  # read back so dates/numbers match what the backend stores
+def finalize(b, plan: dict, path: Path, hdr: list[str], locks: dict, after: list[dict] | None = None) -> None:
+    if after is None:
+        after, _ = b.read()  # read back so dates/numbers match what the backend stores
     write_csv(LAST_WRITTEN, after, hdr)
     write_csv(SNAPSHOT, after, hdr)
     PENDING.unlink(missing_ok=True)
+    if b.name == "connector":
+        CONNECTOR_READ.unlink(missing_ok=True)  # it shows the sheet before this write; force a fresh read
     locks["fields"] = {i: f for i, f in locks["fields"].items() if f}
     LOCKS.write_text(json.dumps(locks, indent=2))
     if b.name in ("sheets", "connector"):
@@ -719,6 +759,38 @@ def finalize(b, plan: dict, path: Path, hdr: list[str], locks: dict) -> None:
     print(f"Applied {len(plan.get('ops', []))} ops. {len(after)} rows.\nTracker: {b.where()}")
 
 
+def verify_ranges(b, pending_plan: Path):
+    """Check just the written ranges. The rest of the sheet was verified when it was
+    read before apply (and apply refuses to run on a changed sheet)."""
+    steps = [st for st in json.loads(CONNECTOR_WRITE.read_text())["steps"] if st["tool"] == "update_values"]
+    data = json.loads(CONNECTOR_VERIFY.read_text())
+    reads = data if isinstance(data, list) else [data]
+    if len(reads) != len(steps):
+        sys.exit(f"Expected {len(steps)} read-backs in {CONNECTOR_VERIFY}, found {len(reads)}.")
+    norm = lambda v: str(v)[1:] if isinstance(v, str) and v.startswith("'") else str(v)  # noqa: E731
+    problems = []
+    for st, rd in zip(steps, reads):
+        got = (rd or {}).get("values", [])
+        for i, row in enumerate(st["values"]):
+            have = [str(x) for x in (got[i] if i < len(got) else [])]
+            have += [""] * (len(row) - len(have))
+            for j, cell in enumerate(row):
+                if norm(cell).strip() != have[j].strip():
+                    problems.append(f"{st['range']} row {i + 1}, column {j + 1}: "
+                                    f"sheet has {have[j]!r}, expected {norm(cell)!r}")
+    if problems:
+        print(f"The sheet doesn't match what was sent ({len(problems)} cells):")
+        for p_ in problems[:30]:
+            print("  " + p_)
+        sys.exit(f"Re-send the steps in {CONNECTOR_WRITE} (they're unchanged), read them back, and verify again.")
+    pending = clean(read_csv(PENDING))
+    import csv as _csv
+    with PENDING.open(newline="", encoding="utf-8") as f:
+        hdr = next(_csv.reader(f), None) or COLUMNS
+    finalize(b, json.loads(pending_plan.read_text()), pending_plan, hdr, load_locks(), after=pending)
+    CONNECTOR_VERIFY.unlink(missing_ok=True)
+
+
 def cmd_verify_write(args):
     prof = load_profile()
     b = backend(prof)
@@ -727,6 +799,8 @@ def cmd_verify_write(args):
     pending_plan = run_dir() / "plan.pending.json"
     if not PENDING.exists() or not pending_plan.exists():
         sys.exit("Nothing waiting to be verified. Run `tracker.py apply` first.")
+    if CONNECTOR_VERIFY.exists() and CONNECTOR_VERIFY.stat().st_mtime >= CONNECTOR_WRITE.stat().st_mtime:
+        return verify_ranges(b, pending_plan)
     want = {r["ID"]: r for r in clean(read_csv(PENDING))}
     got_rows, hdr = b.read()
     got = {r["ID"]: r for r in got_rows}

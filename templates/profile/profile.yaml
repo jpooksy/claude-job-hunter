@@ -17,7 +17,7 @@ location:
   # A posting is dropped when its location matches an exclude pattern and none
   # of the country markers. Unknown locations are kept for the jd-reader.
   exclude_location_patterns:
-    - '\b(EMEA|APAC|APJ|LATAM|ANZ)\b'
+    - '\b(EMEA|APAC|APJ|LATAM|ANZ|Europe|European|Asia|Asia-Pacific|Middle East)\b'
     - '\b(UK|United Kingdom|London|Ireland|Dublin|Germany|Berlin|Munich|France|Paris|Netherlands|Amsterdam|Spain|Madrid|Barcelona|Portugal|Lisbon|Poland|Sweden|Switzerland|Zurich|Italy|Milan|Rome|Belgium|Brussels|Austria|Vienna|Denmark|Copenhagen|Norway|Oslo|Finland|Helsinki|Czech|Prague|Romania|Bucharest|Ukraine|Kyiv|Turkey|Istanbul|Greece|Athens|Estonia|Serbia|Belgrade)\b'
     - '\b(Israel|Tel Aviv|UAE|Dubai|Abu Dhabi|Saudi|Riyadh|Qatar|Doha|Egypt|Cairo|South Africa|Cape Town|Johannesburg|Nigeria|Lagos|Kenya|Nairobi|Middle East|MENA)\b'
     - '\b(India|Bangalore|Bengaluru|Hyderabad|Pune|Singapore|Japan|Tokyo|Australia|Sydney|Melbourne|Korea|Seoul|China|Shanghai|Beijing|Hong Kong|Taiwan|Taipei|Philippines|Manila|Indonesia|Jakarta|Vietnam|Thailand|Bangkok|Malaysia|Kuala Lumpur|New Zealand|Auckland)\b'
@@ -35,7 +35,7 @@ comp:
 level:
   current: mid              # entry | mid | senior | staff | principal | manager | director
   target: [mid]             # levels you're qualified for today
-  exclude: [director, vp]   # never show these
+  exclude: [staff, principal, director, vp]   # never show these (setup sets this from your target)
 
 titles:
   # Case-insensitive regexes. A posting must match one include and no exclude.
@@ -59,4 +59,5 @@ tracker:
   sheet_id: ""
   service_account: ~/.config/claude-job-hunter/service-account.json
   ghosted_after_days: 30
-  sort: true                # sort rows by Category, then Fit
+  sort: true                # CSV / service account: sort rows by Category, then Fit.
+                            # A connector Google Sheet keeps its own order (sort with its filter).

@@ -67,11 +67,11 @@ claude.ai account, and [uv](https://docs.astral.sh/uv/) (`brew install uv`).
 3. Have these ready:
    - your **resume(s)** (PDF, DOCX, or text), all versions if you have more than one. **Required.**
    - your **LinkedIn profile PDF** (your profile → Resources → Save to PDF). Recommended.
-   - the roles that got you **interviews** recently: the company and title are enough.
-   - optional: whatever you already use to track your search (a sheet, a list), and links to your work (GitHub, portfolio, blog, videos).
+   - what you already use to track your search, if anything (a sheet, a list). With email connected, Claude finds your applications and interviews for you.
+   - optional: links to your work (GitHub, portfolio, blog, videos).
 
 Setup takes about 20 minutes, most of it short questions. Then run
-`/find-jobs` (about 15–25 minutes) to get your first recommendations.
+`/find-jobs` (about 10–15 minutes) to get your first recommendations.
 
 ### Be honest in setup
 
@@ -137,7 +137,8 @@ Everything personal lives in `profile/` (created by setup, gitignored):
 | `signals.md` | Companies that interviewed you or kept the door open |
 | `targets.md` | Companies and positions you're interested in |
 | `dealbreakers.md` | Hard no's. These remove roles; they don't just lower the score |
-| `warm-networks.md` | VC portfolio boards, alumni groups, referral paths |
+| `job-sources.md` | Extra job boards Claude searches for companies (community boards, newsletters, investor portfolio boards) |
+| `work.md` · `stories.md` | Your public work (GitHub, portfolio, videos) and stories `/apply` saves as you go |
 | `profile.yaml` | Titles, levels, location rules, pay floor, email/tracker settings |
 | `fit-score.yaml` | The scoring rubric: change the numbers, change the ranking |
 

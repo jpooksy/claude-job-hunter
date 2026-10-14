@@ -27,8 +27,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from common import (  # noqa: E402
-    LEVELS, SEEN_JSONL, load_companies, load_profile, load_rubric, norm_company,
-    read_jsonl, run_dir, today, write_jsonl,
+    LEVELS, SEEN_JSONL, TRACKER_DIR, load_companies, load_profile, load_rubric, norm_company,
+    read_csv, read_jsonl, run_dir, today, write_jsonl,
 )
 
 # A short, plain note on why this company is in the search at all.
@@ -138,6 +138,12 @@ def main():
         for x in read_jsonl(f):
             extracts[x["id"]] = x
     rel_by_co = {norm_company(r["company"]): (r.get("relationship") or "research") for r in load_companies()}
+    # If the user is already in process somewhere, a second role there isn't extra
+    # evidence of fit, so it gets no relationship bonus, just a note.
+    active = {}
+    for r in read_csv(TRACKER_DIR / "snapshot.csv"):
+        if r.get("Status") in ("Applied", "In Conversation", "Interviewing", "Offer"):
+            active.setdefault(norm_company(r.get("Company", "")), r.get("Role") or "a role")
 
     scored, dropped, seen, unread = [], [], [], []
     for cid, c in cands.items():
@@ -146,7 +152,8 @@ def main():
             unread.append(cid)
             continue
         rel = rel_by_co.get(norm_company(c["company"]), "research")
-        s, reasons, drop = score_one(c, x, rubric, prof, rel)
+        in_process = active.get(norm_company(c["company"]))
+        s, reasons, drop = score_one(c, x, rubric, prof, "research" if in_process else rel)
         if drop:
             dropped.append({"id": cid, "company": c["company"], "title": c["title"], "reason": drop})
             seen.append({"id": cid, "decision": "dropped", "reason": drop, "date": today()})
@@ -157,7 +164,8 @@ def main():
             "Comp": comp_text(c, x), "Location": c.get("location", ""),
             "Added by": "Claude",
             "Last updated": today(), "URL": c.get("url", ""),
-            "Notes": f"{RELATIONSHIP_NOTE.get(rel, RELATIONSHIP_NOTE['research'])} {x.get('summary', '')}".strip(), "Fit reasoning": "; ".join(reasons) + f" = {s}",
+            "Notes": (f"You're already in process here ({in_process})." if in_process
+                      else RELATIONSHIP_NOTE.get(rel, RELATIONSHIP_NOTE["research"])) + f" {x.get('summary', '')}".rstrip(), "Fit reasoning": "; ".join(reasons) + f" = {s}",
         })
         seen.append({"id": cid, "decision": "scored", "score": s, "date": today()})
 
