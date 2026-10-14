@@ -20,7 +20,7 @@ guardrails in the workflow ([docs/lessons.md](docs/lessons.md)).
 
 | Command | What happens |
 |---------|-------------|
-| **`/setup`** | A guided first run: upload your resume (plus LinkedIn PDF and anything else useful), answer a few rounds of questions, connect email and Google Sheets (both recommended, both optional), and calibrate the fit score against your own judgment |
+| **`/setup`** | A guided first run: add your resume(s) and LinkedIn PDF, answer a few short rounds of questions, connect email and a Google Sheet (both recommended, both optional), and fill your tracker from your own list and inbox. It doesn't search for new jobs; that's the next command |
 | **`/find-jobs`** | Researches companies like the ones that interviewed you, fetches every job board, filters out what doesn't fit, reads the rest against your resume, scores them, and adds them to your tracker after you confirm |
 | **`/refresh-tracker`** | Re-checks every posting (live / changed / gone), audits your inbox for rejections, interviews and ghosting, picks up new roles at known companies, and lists follow-ups due |
 | **`/apply`** | Writes application answers, cover letters, resume tweaks and outreach or follow-up drafts, specific to the company and grounded in your real resume. Marks the role Applied when you submit |
@@ -65,13 +65,13 @@ claude.ai account, and [uv](https://docs.astral.sh/uv/) (`brew install uv`).
    > /setup
    ```
 3. Have these ready:
-   - your **resume** (PDF, DOCX, or text). **Required.**
+   - your **resume(s)** (PDF, DOCX, or text), all versions if you have more than one. **Required.**
    - your **LinkedIn profile PDF** (your profile → Resources → Save to PDF). Recommended.
-   - the companies that have **interviewed you** recently, and how far you got.
-   - optional: job descriptions you liked, a target-company list, an old job tracker.
+   - the roles that got you **interviews** recently: the company and title are enough.
+   - optional: whatever you already use to track your search (a sheet, a list), and links to your work (GitHub, portfolio, blog, videos).
 
-Setup takes about 15–25 minutes, most of it the questions. Then run
-`/find-jobs`.
+Setup takes about 30–45 minutes, most of it short questions. Then run
+`/find-jobs` (about 15–25 minutes) to get your first recommendations.
 
 ### Be honest in setup
 
@@ -96,10 +96,11 @@ you have security concerns, and tell Claude about changes yourself.
 → [docs/email-setup.md](docs/email-setup.md)
 
 **Google Sheets.** The tracker updates automatically in a real spreadsheet
-you can open anywhere, with filters, dropdowns and color-coded scores. Claude
-creates the sheet in your Drive and writes to it through a service account
-that can only see sheets you share with it. The CSV alternative works, but
-you have to re-open the file after every update.
+you can open anywhere, with filters, dropdowns and color-coded scores. Connect
+the claude.ai **Google Sheets** and **Google Drive** connectors, and Claude
+creates and fills the sheet. There's no Google Cloud setup. Every write is read
+back and checked. The CSV alternative works, but you have to re-open the file
+after every update. (Already have a Google service account? That works too.)
 → [docs/sheets-setup.md](docs/sheets-setup.md)
 
 ---
@@ -115,7 +116,8 @@ One row per role:
 | Company · Role · URL | The posting, verified live |
 | Status | Not Applied · Applied · In Conversation · Interviewing · Offer · Rejected · Ghosted · Hiring Freeze · Closed |
 | Applied · Last updated | Real dates |
-| Comp · Location · Source | Source: My list · Signal company · Similar company · Warm network · Inbox · Door open |
+| Comp · Location | From the posting |
+| **Added by** | Who put the row there: **You** (your list, or something you told Claude) · **Email** (found in your inbox) · **Claude** (a role Claude recommends) |
 | Notes · Fit reasoning | Dated notes; how each point of the score was earned |
 
 **Your edits win.** Edit the sheet whenever you like. Claude diffs against what

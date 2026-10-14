@@ -14,15 +14,34 @@ Otherwise, WebFetch the URL.
 
 ## 2. Gather context
 
-Read `profile/resume.md`, `profile/background.md`, the row's Notes and Fit
-reasoning, and `profile/signals.md` (did they interview here before?). If
-`profile/voice.md` exists, match its style. If not, and this is the first
-/apply, ask for a short writing sample (an email or post they wrote) and save
-a few notes on their voice to `profile/voice.md`.
+Read `profile/resume.md`, `profile/background.md`, `profile/work.md`,
+`profile/stories.md`, the row's Notes and Fit reasoning, and
+`profile/signals.md` (did they interview here before?). If `profile/voice.md`
+exists, match its style. If not, and this is the first /apply, ask for a short
+writing sample (an email or post they wrote) and save a few notes on their
+voice to `profile/voice.md`.
 
 Ask what they need: answers to application questions (have them paste the
 questions), a cover letter, resume tweaks, an outreach note to a recruiter or
 hiring manager, a referral ask, or a follow-up.
+
+### Stories, only when needed
+
+For each answer, work out what it has to prove ("can run technical demos",
+"handled a hard customer"). Look for proof in resume.md, work.md and
+stories.md first. Only if there's a real gap, ask **one targeted question per
+gap**, at most two or three per application, as a plain message. Build the
+question from this posting and this person's resume, never from a stock list.
+For example:
+
+> This posting cares a lot about running proof-of-concepts. Your resume
+> mentions a 70% POC-to-close rate. Is there one that stands out? What did the
+> customer need, what did you build, how did it end? Two or three sentences
+> is plenty. Or say "use what you have" and I'll write it from your resume,
+> marking anything I'm unsure of with [CONFIRM].
+
+Save each answer to `profile/stories.md` in the format at the top of that file,
+and say "Saved for next time." Later applications reuse it without asking.
 
 ## 3. Write
 
@@ -30,7 +49,7 @@ Rules, from experience:
 - **Specific to this company and role.** Name the product, the buyer, and the
   problem the role solves. Don't reuse a generic answer from another
   application.
-- **Grounded in the resume.** Every claim must trace to `resume.md`. Lead with
+- **Grounded in what's real.** Every claim must trace to `resume.md`, `work.md` or `stories.md`. Lead with
   the most recent, most relevant role. Never invent metrics, tools or
   projects. If a strong answer needs a fact you don't have, write
   `[CONFIRM: ...]` and ask.
@@ -59,5 +78,8 @@ uv run scripts/tracker.py change --id "<ID>" --set Status=Applied --set "Categor
 uv run scripts/tracker.py plan --changes runs/<date>/changes.jsonl
 uv run scripts/tracker.py apply
 ```
+
+(Connector backend: read the sheet before `plan`, and finish the write
+afterwards. See CLAUDE.md → Writing the tracker.)
 
 `--force` is right here: the user asked for this change, so it overrides an earlier hand edit of the same fields. Show the one-line plan before applying.

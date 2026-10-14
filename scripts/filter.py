@@ -37,17 +37,30 @@ def _any(patterns: list[str], text: str) -> str | None:
     return None
 
 
+def _norm_title(t: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", (t or "").lower()).strip()
+
+
+def comp_floor(title: str, comp: dict) -> int:
+    """The pay floor for this title: the first matching by_title rule, else the default."""
+    for rule in comp.get("by_title") or []:
+        if re.search(rule.get("match", "$^"), title, re.IGNORECASE):
+            return rule.get("min_top_of_range") or 0
+    return comp.get("min_top_of_range") or 0
+
+
 def reason_to_drop(p: dict, prof: dict) -> str | None:
     title = p["title"]
     titles = prof.get("titles") or {}
-    if not _any(titles.get("include"), title):
+    stretch = _any(titles.get("stretch"), title)  # roles the user chose to keep despite the level
+    if not stretch and not _any(titles.get("include"), title):
         return "title: not a target title"
     hit = _any(titles.get("exclude"), title)
     if hit:
         return f"title: excluded ({hit})"
 
     level = level_from_title(title)
-    if level in ((prof.get("level") or {}).get("exclude") or []):
+    if level in ((prof.get("level") or {}).get("exclude") or []) and not stretch:
         return f"level: {level} excluded"
 
     if norm_company(p["company"]) in {norm_company(c) for c in prof.get("exclude_companies") or []}:
@@ -55,14 +68,20 @@ def reason_to_drop(p: dict, prof: dict) -> str | None:
 
     loc = prof.get("location") or {}
     where = p.get("location") or ""
-    if _any(loc.get("exclude_location_patterns"), where) and not _any(loc.get("country_markers"), where):
+    relocate = loc.get("relocate_to") or []
+    anywhere = any(str(r).lower().startswith("anywhere") for r in relocate)
+    in_country = bool(_any(loc.get("country_markers"), where))
+    if _any(loc.get("exclude_location_patterns"), where) and not in_country:
         return f"location: {where}"
     if loc.get("remote") == "required" and p.get("workplace") in ("onsite", "hybrid"):
-        if not _any([re.escape(m) for m in loc.get("onsite_ok_metros") or []], where):
+        ok_metros = [re.escape(m) for m in (loc.get("onsite_ok_metros") or []) + [
+            r for r in relocate if not str(r).lower().startswith("anywhere")]]
+        if not _any(ok_metros, where) and not (anywhere and (in_country or not where)):
             return f"location: {p['workplace']} in {where}"
 
-    floor = (prof.get("comp") or {}).get("min_top_of_range") or 0
-    cur = (prof.get("comp") or {}).get("currency")
+    comp = prof.get("comp") or {}
+    floor = comp_floor(title, comp)
+    cur = comp.get("currency")
     if floor and p.get("comp_max") and (not cur or not p.get("comp_currency") or p["comp_currency"] == cur):
         if p["comp_max"] <= floor:
             return f"comp: tops out at {p['comp_max']}"
@@ -83,12 +102,16 @@ def main():
     if not postings:
         sys.exit(f"No postings in {rd}. Run `uv run scripts/ats.py fetch` first.")
 
-    known = {r.get("ID") for r in read_csv(TRACKER_DIR / "snapshot.csv")}
+    tracked = read_csv(TRACKER_DIR / "snapshot.csv")
+    known = {r.get("ID") for r in tracked}
     known |= {s["id"] for s in read_jsonl(SEEN_JSONL)}
+    # Rows from an imported list or the inbox have no job-board ID, so also match
+    # on company + title to avoid re-reading roles the user already tracks.
+    tracked_names = {(norm_company(r.get("Company", "")), _norm_title(r.get("Role", ""))) for r in tracked}
 
     keep, dropped, counts = [], [], {}
     for p in postings:
-        if p["id"] in known:
+        if p["id"] in known or (norm_company(p["company"]), _norm_title(p["title"])) in tracked_names:
             counts["already tracked or judged"] = counts.get("already tracked or judged", 0) + 1
             continue
         why = reason_to_drop(p, prof)

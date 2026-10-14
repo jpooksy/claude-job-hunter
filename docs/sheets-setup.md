@@ -1,33 +1,49 @@
 # Google Sheets setup
 
 The tracker works as a local CSV, but a Google Sheet is better: it **updates
-automatically** every time Claude applies a change, you can open it anywhere
+automatically** whenever Claude changes it, you can open it anywhere
 (including your phone), and it has filters, dropdowns, and color-coded fit
 scores. You can edit it by hand, and Claude keeps your edits.
 
-The `/setup` skill walks you through this. These are the same steps, for
-reference.
+The `/setup` skill does all of this for you. This page is for reference.
 
-## How it works
+## Recommended: the claude.ai Google Sheets connector
 
-- Claude **creates** the sheet in *your* Google Drive through the claude.ai
-  **Google Drive connector**, and shares it with a service account.
-- `scripts/tracker.py` **reads and writes** cells as that **service account**,
-  a robot Google identity that can only open spreadsheets you explicitly share
-  with it. It can't see anything else in your Drive.
-- Why not let the service account create the sheet? Service accounts no longer
-  get Drive storage, so creating a file fails with "storage quota exceeded".
-  The file has to be owned by you.
+No Google Cloud setup, no keys, nothing to install.
 
-Takes about 10 minutes. It's free and needs no billing account.
+1. claude.ai → Settings → Connectors → connect **Google Sheets** and
+   **Google Drive** with your Google account.
+2. Claude Code must be signed in with the same claude.ai account (`/login`).
+   If you connected them while Claude Code was open, restart it and pick up
+   where you left off with `claude --continue`.
+3. In `/setup`, Claude creates a sheet called "Job Hunt Tracker" in your Drive
+   and formats it.
 
-## 1. Connect Google Drive in claude.ai
+What happens behind the scenes: scripts can't use connectors, so Claude does
+the reading and writing. `tracker.py` still decides exactly what goes in the
+sheet. Claude sends those values through the connector, reads the sheet back,
+and `tracker.py verify-write` confirms the sheet matches before anything else
+happens (see CLAUDE.md → Writing the tracker).
 
-claude.ai → Settings → Connectors → **Google Drive** → Connect. Claude Code
-must be signed in with the same claude.ai account (`/login`). Restart Claude
-Code afterwards so the connector loads.
+**Access:** the connector uses your Google account, so it can open any sheet
+you can. Claude only touches the tracker. Disconnect any time in claude.ai →
+Settings → Connectors.
 
-## 2. Create a service account and key
+**Limits:** the connector is in beta and needs a paid Claude plan. Some
+company Google accounts block it. If it isn't available to you, use the
+service account below, or a CSV.
+
+## Advanced: your own service account
+
+For people who already have a Google Cloud service account, or have very
+large trackers. `tracker.py` then talks to the Sheets API directly, with no
+connector involved. Setup takes about 15 minutes in the Google Cloud Console.
+
+Why does the sheet still get created by you? Service accounts no longer get
+Drive storage, so they can't create files ("storage quota exceeded"). The file
+has to be owned by you and shared with the service account.
+
+### Create a service account and key
 
 Use a **personal** Google account. Company Google Workspace accounts often
 block service-account keys (error: "Service account key creation is disabled").
@@ -62,7 +78,7 @@ chmod 600 ~/.config/claude-job-hunter/service-account.json
 ```
 </details>
 
-## 3. Create and share the sheet
+### Share the sheet with it
 
 Claude does this in `/setup`: creates "Job Hunt Tracker" in your Drive and
 shares it with the service account's `client_email` as **Editor**.
@@ -71,13 +87,13 @@ Doing it by hand: open https://sheets.new, name it, click **Share**, paste the
 `client_email` from the key file, choose Editor, and uncheck "Notify". Copy the
 URL. The ID is the long string between `/d/` and `/edit`.
 
-## 4. Point the tracker at it
+### Point the tracker at it
 
 In `profile/profile.yaml`:
 
 ```yaml
 tracker:
-  backend: sheets
+  backend: sheets   # (the connector option uses: backend: connector)
   sheet_id: "<the ID>"
   service_account: ~/.config/claude-job-hunter/service-account.json
 ```
@@ -89,7 +105,7 @@ uv run scripts/tracker.py check       # prints the service-account email and she
 uv run scripts/tracker.py init-sheet  # header, frozen columns, filters, dropdowns, colors
 ```
 
-## Troubleshooting
+### Troubleshooting
 
 | Error | Fix |
 |-------|-----|
@@ -102,7 +118,7 @@ uv run scripts/tracker.py init-sheet  # header, frozen columns, filters, dropdow
 To revoke access at any time: Cloud Console → Service accounts → Keys → delete
 the key, or remove the service account from the sheet's Share list.
 
-## Switching from CSV later
+## Switching later
 
-Run `/setup Google Sheets`. After the sheet is set up, Claude copies your
-existing `tracker/jobs.csv` rows into it (pull → plan → apply).
+Run `/setup Google Sheets`. After the new sheet is set up, Claude copies your
+existing rows into it (pull → plan → apply).

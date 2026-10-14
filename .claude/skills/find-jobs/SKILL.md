@@ -15,7 +15,16 @@ research companies (agents) → import + detect boards (script) → fetch all po
 Everything lands in `runs/<date>/`, so a crashed step can be re-run without
 redoing the rest. Use today's date for `<date>`.
 
+Tell the user up front what this does and roughly how long it takes ("I'll
+look for companies like the ones that interviewed you, then read their open
+roles against your resume. This takes about 15–25 minutes. I'll check in
+when I have results."). Give a one-line status at each stage. Every role found
+here is a **recommendation**: it goes in the tracker with **Added by: Claude**,
+and only after the user says yes.
+
 ## 0. Preflight
+
+Connector backend: read the sheet first (CLAUDE.md → Writing the tracker).
 
 ```bash
 test -f profile/profile.yaml || echo "run /setup first"
@@ -99,13 +108,26 @@ If it reports postings "not read yet", re-run the jd-reader for the batches
 whose extract files are missing or short, then run score.py again. It only
 scores what hasn't been scored.
 
-## 6. Plan → confirm → apply
+## 6. Gut check (first run only)
+
+If the tracker has no **Added by: Claude** rows yet, this is the first search.
+Before planning, show the top 10 scored roles **in the chat** as a numbered
+list (score, company, role, one-line reason), and ask:
+
+> Before I add these: are there any you'd **never** apply to? Reply with the
+> numbers and a word on why (e.g. "3, 7: too senior"), or "all good".
+
+Turn each "why" into a rule (CLAUDE.md → Feedback → files), re-run
+`uv run scripts/score.py --dry-run` on this run's extractions to show what
+changed, then continue. Only one round. Don't ask for numeric scores.
+
+## 7. Plan → confirm → apply
 
 ```bash
 uv run scripts/tracker.py plan --scored runs/<date>/scored.jsonl
 ```
 
-Show the user:
+Show the user, **in the chat**:
 - how many companies were researched / new, postings fetched, candidates read
 - the top roles (score, company, role, one-line reasoning)
 - the main drop reasons, with counts. Call out any dealbreaker that removed a
@@ -119,7 +141,9 @@ Then:
 uv run scripts/tracker.py apply
 ```
 
-Give the tracker link (sheet URL, or `tracker/jobs.csv`).
+Finish the write (CLAUDE.md → Writing the tracker), then give the tracker link
+(sheet URL, or `tracker/jobs.csv`). End with the next step on the last line,
+e.g. `👉 Your turn: open any role you like and run /apply for help applying.`
 
 ## Rules
 

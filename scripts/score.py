@@ -31,9 +31,13 @@ from common import (  # noqa: E402
     read_jsonl, run_dir, today, write_jsonl,
 )
 
-SOURCE_FOR_RELATIONSHIP = {
-    "interviewed": "Signal company", "door_open": "Door open", "warm": "Warm network",
-    "target": "My list", "research": "Similar company",
+# A short, plain note on why this company is in the search at all.
+RELATIONSHIP_NOTE = {
+    "interviewed": "You interviewed here before.",
+    "door_open": "They asked you to stay in touch.",
+    "warm": "You have a warm path in here.",
+    "target": "A company on your list.",
+    "research": "A new company Claude found for you.",
 }
 
 
@@ -103,6 +107,10 @@ def score_one(c: dict, x: dict, rubric: dict, prof: dict, rel: str) -> tuple[int
     if isinstance(v, int) and v:
         pts.append((f"{q} qualification match", v))
 
+    stretch = (prof.get("titles") or {}).get("stretch") or []
+    if any(re.search(pt, c.get("title", ""), re.IGNORECASE) for pt in stretch):
+        pts.append(("stretch role you chose to keep", rubric.get("stretch_title", -1)))
+
     hay = " ".join([c.get("title", ""), x.get("industry", ""), x.get("buyer", "")])
     for k in rubric.get("keywords") or []:
         if re.search(k["pattern"], hay, re.IGNORECASE):
@@ -147,9 +155,9 @@ def main():
             "ID": cid, "Category": "To apply", "Fit": s, "Company": c["company"],
             "Role": c["title"], "Status": "Not Applied", "Applied": "",
             "Comp": comp_text(c, x), "Location": c.get("location", ""),
-            "Source": SOURCE_FOR_RELATIONSHIP.get(rel, "Similar company"),
+            "Added by": "Claude",
             "Last updated": today(), "URL": c.get("url", ""),
-            "Notes": x.get("summary", ""), "Fit reasoning": "; ".join(reasons) + f" = {s}",
+            "Notes": f"{RELATIONSHIP_NOTE.get(rel, RELATIONSHIP_NOTE['research'])} {x.get('summary', '')}".strip(), "Fit reasoning": "; ".join(reasons) + f" = {s}",
         })
         seen.append({"id": cid, "decision": "scored", "score": s, "date": today()})
 

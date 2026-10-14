@@ -10,6 +10,7 @@ status=no_ats and the find-jobs skill checks their careers page by hand.
 
 Usage:
   uv run scripts/ats.py import FILE.jsonl... [--relationship research]  # add companies, skipping known ones
+  uv run scripts/ats.py set --company NAME (--ats lever --slug acme | --none)  # fix a board by hand
   uv run scripts/ats.py detect [--all | --company NAME]   # fill ats/slug in data/companies.csv
   uv run scripts/ats.py fetch [--company NAME]            # all postings -> runs/<date>/postings.jsonl
   uv run scripts/ats.py verify                            # tracked roles -> runs/<date>/verify.jsonl
@@ -171,8 +172,9 @@ def fetch_board(ats: str, slug: str):
 
 def cmd_import(args):
     rows = load_companies()
+    # Only companies.csv counts as "known". Companies that are in the tracker but
+    # not in companies.csv (e.g. from an imported sheet) are exactly what to add.
     known = {norm_company(r["company"]) for r in rows}
-    known |= {norm_company(r.get("Company", "")) for r in read_csv(TRACKER_DIR / "snapshot.csv")}
     added, dupes = [], []
     for f in args.files:
         for c in read_jsonl(Path(f)):
@@ -194,6 +196,27 @@ def cmd_import(args):
         print(f"  + {a['company']} ({a['domain']}): {a['why'][:90]}")
     if dupes:
         print("  skipped: " + ", ".join(sorted(set(dupes))))
+
+
+def cmd_set(args):
+    """Record a company's job board by hand (or mark it as having none)."""
+    rows = load_companies()
+    hit = [r for r in rows if norm_company(r["company"]) == norm_company(args.company)]
+    if not hit:
+        sys.exit(f"{args.company} isn't in data/companies.csv. Import it first.")
+    r = hit[0]
+    if args.none:
+        r.update({"ats": "", "slug": "", "detect": "manual", "status": "no_ats"})
+    else:
+        if args.ats not in PROVIDERS or not args.slug:
+            sys.exit(f"--ats must be one of {', '.join(PROVIDERS)}, with --slug.")
+        if fetch_board(args.ats, args.slug) is None:
+            sys.exit(f"No {args.ats} board at slug {args.slug!r}.")
+        r.update({"ats": args.ats, "slug": args.slug, "detect": "manual", "status": "active"})
+    if args.careers_url:
+        r["careers_url"] = args.careers_url
+    save_companies(rows)
+    print(f"{r['company']}: {r['ats'] or 'no supported board'} {r['slug']} (manual)")
 
 
 # --- detect ---------------------------------------------------------------
@@ -249,6 +272,9 @@ def detect_one(row: dict) -> dict:
                     return {**row, "ats": ats, "slug": slug, "detect": "careers_page",
                             "careers_url": row.get("careers_url") or url, "status": "active"}
     # 2) Guess slugs against each provider. Can hit a same-named company, so flag it.
+    # A guessed board with zero jobs is usually a dead or unrelated account (Workable
+    # answers 200 for abandoned accounts), so it doesn't count as a match.
+    empty = None
     for slug in _slug_guesses(row):
         for ats in PROVIDERS:
             res = fetch_board(ats, slug)
@@ -257,18 +283,25 @@ def detect_one(row: dict) -> dict:
             board_name, jobs = res
             if not _name_matches(row["company"], board_name):
                 continue
+            if not jobs:
+                empty = empty or f"{ats}/{slug}"
+                continue
             return {**row, "ats": ats, "slug": slug, "status": "active",
                     "detect": "guessed" if board_name is None else "guessed_name_ok"}
-    return {**row, "ats": "", "slug": "", "detect": "not_found", "status": "no_ats"}
+    note = f"not_found (empty board at {empty})" if empty else "not_found"
+    return {**row, "ats": "", "slug": "", "detect": note, "status": "no_ats"}
 
 
 def cmd_detect(args):
     rows = load_companies()
     if not rows:
         sys.exit("data/companies.csv is empty. Add companies first.")
-    targets = [r for r in rows if (args.all or not r.get("ats")) and r.get("status") != "ignored"]
+    # Boards set by hand (`ats.py set`) are never re-detected, even with --all.
+    def eligible(r):
+        return r.get("detect") != "manual" and r.get("status") != "ignored"
+    targets = [r for r in rows if eligible(r) and (args.all or (not r.get("ats") and r.get("status") != "no_ats"))]
     if args.company:
-        targets = [r for r in rows if norm_company(r["company"]) == norm_company(args.company)]
+        targets = [r for r in rows if eligible(r) and norm_company(r["company"]) == norm_company(args.company)]
     print(f"Detecting job boards for {len(targets)} companies...", file=sys.stderr)
     with ThreadPoolExecutor(8) as ex:
         results = list(ex.map(detect_one, targets))
@@ -384,6 +417,12 @@ def main():
     im.add_argument("files", nargs="+")
     im.add_argument("--relationship", default="research",
                     choices=["interviewed", "door_open", "warm", "target", "research"])
+    st = sub.add_parser("set")
+    st.add_argument("--company", required=True)
+    st.add_argument("--ats", choices=list(PROVIDERS))
+    st.add_argument("--slug")
+    st.add_argument("--none", action="store_true", help="no supported board; check the careers page by hand")
+    st.add_argument("--careers-url")
     d = sub.add_parser("detect")
     d.add_argument("--all", action="store_true", help="re-detect companies that already have a board")
     d.add_argument("--company")
@@ -391,7 +430,7 @@ def main():
     f.add_argument("--company")
     sub.add_parser("verify")
     args = ap.parse_args()
-    {"import": cmd_import, "detect": cmd_detect, "fetch": cmd_fetch, "verify": cmd_verify}[args.cmd](args)
+    {"import": cmd_import, "set": cmd_set, "detect": cmd_detect, "fetch": cmd_fetch, "verify": cmd_verify}[args.cmd](args)
 
 
 if __name__ == "__main__":

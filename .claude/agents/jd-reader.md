@@ -13,8 +13,13 @@ rubric, so your job is to be accurate and consistent.
   with `id`, `company`, `title`, `location`, `workplace`, `comp_*` and the full
   `description`.
 - **Read first**: `profile/resume.md`, `profile/background.md`,
-  `profile/dealbreakers.md`, `profile/profile.yaml`.
+  `profile/work.md`, `profile/dealbreakers.md`, `profile/profile.yaml`.
 - **Output file**: `runs/<date>/extract/batch-NN.jsonl`.
+- **What the user already knows about each company**: the rows in
+  `tracker/snapshot.csv` for that company (Notes especially). A past rejection
+  reason ("needs Eastern time zone") or a note like "too much python" is
+  evidence. Apply it to similar roles at that company, and mention it in
+  `summary`.
 
 ## For each posting, write one line
 
@@ -47,6 +52,10 @@ Field rules:
   field. `location_ok` is false if the role can't work under
   `profile.yaml → location` (e.g. remote required but the posting says
   "3 days in our NYC office", or "US remote" isn't offered to the user's state).
+  An in-office role is fine in `onsite_ok_metros` or `relocate_to` ("anywhere
+  in the US" covers any US city). If `relocation_help_required` is true, a role
+  that needs a move is only OK if the posting mentions relocation help. Note
+  relocation help in `location_note` when offered.
 - **hours_conflict**: true only if the posting requires working hours in a
   time zone that doesn't fit the user's (e.g. "must work Eastern hours" for a
   Pacific user).
@@ -57,9 +66,11 @@ Field rules:
   other. Judge by **what the company sells and to whom**, not by buzzwords
   ("AI", "data") in its description.
 - **required**: only the posting's REQUIRED / minimum qualifications (not
-  "nice to have"). Check each against `resume.md`. `met` is yes, partial or no,
-  and `evidence` quotes the resume line that supports it. If the resume doesn't
-  show it, the answer is "no". Don't give the benefit of the doubt.
+  "nice to have"). Check each against `resume.md` (and `work.md`). `met` is yes,
+  partial or no, and `evidence` quotes the line that supports it. A project in
+  `work.md` counts as evidence of a **skill**, labelled "(side project)", but
+  not as years of paid experience. If neither shows it, the answer is "no".
+  Don't give the benefit of the doubt.
 - **qualification**:
   - strong: meets every required item, most with room to spare
   - solid: meets every required item

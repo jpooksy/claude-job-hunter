@@ -25,6 +25,8 @@ level:             # posting level vs profile.level.target
   one_above: -1
   two_plus_above: -2
 
+stretch_title: -1   # a role in profile.titles.stretch (kept on purpose, but a reach)
+
 location:
   preferred_metro: 1
   hours_conflict: -1   # e.g. requires East Coast hours and you're on the West Coast

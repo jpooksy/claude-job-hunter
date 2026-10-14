@@ -3,14 +3,16 @@
 # (dealbreakers, background) live in the .md files next to this one.
 
 name: ""
-search_started: ""          # YYYY-MM-DD. The first inbox audit looks back to here.
+search_started: ""          # YYYY-MM-DD. Set automatically from your earliest application.
 
 location:
   home: ""                  # e.g. "Denver, CO"
   country: US
   timezone: ""              # e.g. America/Denver
   remote: required          # required | preferred | flexible
-  onsite_ok_metros: []      # hybrid/onsite is fine here, e.g. ["Denver"]
+  onsite_ok_metros: []      # hybrid/in-office is fine here (near home), e.g. ["Denver"]
+  relocate_to: []           # cities you'd move to for the right role, or ["anywhere in the US"]
+  relocation_help_required: false  # only count moves where the company helps with costs
   preferred_metros: []      # small fit bonus, e.g. ["Denver"]
   # A posting is dropped when its location matches an exclude pattern and none
   # of the country markers. Unknown locations are kept for the jd-reader.
@@ -27,6 +29,8 @@ location:
 comp:
   currency: USD
   min_top_of_range: 0       # drop roles whose posted range tops out at or below this (0 = off)
+  by_title: []              # different floors for different kinds of role, first match wins, e.g.
+  #  - {match: 'developer (advocate|relations)', min_top_of_range: 175000}
 
 level:
   current: mid              # entry | mid | senior | staff | principal | manager | director
@@ -37,6 +41,8 @@ titles:
   # Case-insensitive regexes. A posting must match one include and no exclude.
   include: []               # e.g. ['solutions? (engineer|architect|consultant)', 'sales engineer']
   exclude: ['\bintern\b']
+  stretch: []               # roles you chose to keep even though they're a reach (scored lower,
+                            # never hidden by level.exclude), e.g. ['head of (developer relations|devrel)']
 
 industries:
   core: []                  # significant, hands-on experience (+2)

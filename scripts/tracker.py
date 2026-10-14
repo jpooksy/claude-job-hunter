@@ -2,7 +2,18 @@
 # requires-python = ">=3.10"
 # dependencies = ["pyyaml>=6", "google-auth>=2.20", "requests>=2.31"]
 # ///
-"""The job tracker: a CSV file or a Google Sheet, written only through pull -> plan -> apply.
+"""The job tracker: a Google Sheet or a CSV file, written only through pull -> plan -> apply.
+
+Backends (profile.yaml -> tracker.backend):
+  connector  Google Sheet via the claude.ai Google Sheets connector (default; no Cloud Console).
+             Claude does the actual reads and writes with the connector, because
+             connectors are only available to Claude, not to scripts:
+               read:  get_values(<sheet>, "Jobs!A1:Z") -> save the JSON result verbatim
+                      to tracker/connector-read.json, then run pull/plan/apply.
+               write: `apply` writes tracker/connector-write.json; send its steps with
+                      the connector, read the sheet back as above, then `verify-write`.
+  sheets     Google Sheet via a service account (advanced; scripts call the Sheets API).
+  csv        tracker/jobs.csv (no Google).
 
   pull                 read the live tracker into tracker/snapshot.csv and report
                        every edit you made by hand since the last apply
@@ -12,7 +23,8 @@
   change               queue one edit (e.g. mark a role Applied) for the next plan
   exclude              write data/exclude.txt (every company already known)
   init-sheet           format a new Google Sheet (header, filters, dropdowns, colors)
-  check                confirm the backend is reachable and print the service-account email
+  verify-write         (connector) confirm the sheet now matches what apply intended
+  check                confirm the backend is reachable
 
 Hand edits always win: if you changed a field since the last apply, plans skip
 that field and say so. Rows you edited (or added yourself) are never deleted
@@ -38,7 +50,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from common import (  # noqa: E402
-    CATEGORIES, COLUMNS, DATA_DIR, DATE_COLUMNS, STATUSES, TRACKER_DIR,
+    ADDED_BY, CATEGORIES, COLUMNS, DATA_DIR, DATE_COLUMNS, LEGACY_SOURCE, STATUSES, TRACKER_DIR,
     load_companies, load_profile, norm_company, read_csv, read_jsonl, run_dir,
     today, write_csv, write_jsonl,
 )
@@ -47,7 +59,11 @@ SNAPSHOT = TRACKER_DIR / "snapshot.csv"
 LAST_WRITTEN = TRACKER_DIR / ".last_written.csv"
 LOCKS = TRACKER_DIR / "locks.json"  # fields/rows you edited by hand; kept until you unlock them
 CSV_PATH = TRACKER_DIR / "jobs.csv"
+CONNECTOR_READ = TRACKER_DIR / "connector-read.json"
+CONNECTOR_WRITE = TRACKER_DIR / "connector-write.json"
+PENDING = TRACKER_DIR / ".pending.csv"
 TAB = "Jobs"
+CHUNK_ROWS = 40
 
 # --- Helpers --------------------------------------------------------------
 
@@ -61,6 +77,15 @@ def norm_date(v: str) -> str:
             return dt.datetime.strptime(v, fmt).date().isoformat()
         except ValueError:
             pass
+    # No year ("8/12", "Sep 3"): assume the most recent such date that isn't in the future.
+    for fmt in ("%m/%d", "%b %d", "%B %d"):
+        try:
+            d = dt.datetime.strptime(v, fmt).date().replace(year=dt.date.today().year)
+        except ValueError:
+            continue
+        if d > dt.date.today():
+            d = d.replace(year=d.year - 1)
+        return d.isoformat()
     return v
 
 
@@ -90,6 +115,14 @@ def clean(rows: list[dict]) -> list[dict]:
         if not any((v or "").strip() for v in r.values() if isinstance(v, str)):
             continue
         r = {k: ("" if v is None else str(v)) for k, v in r.items()}
+        if "Source" in r:  # trackers made before "Added by" existed
+            old = r.pop("Source")
+            added = LEGACY_SOURCE.get(old.strip().lower(), old)
+            if r.get("Fit reasoning", "").strip():  # only Claude's scoring writes this
+                added = "Claude"
+            r["Added by"] = r.get("Added by") or added
+        if not r.get("Added by"):
+            r["Added by"] = "You"  # rows typed into the tracker by hand
         for c in DATE_COLUMNS:
             if c in r:
                 r[c] = norm_date(r[c])
@@ -115,7 +148,7 @@ def sort_rows(rows: list[dict]) -> list[dict]:
 
 def header_for(rows: list[dict], live_header: list[str] | None) -> list[str]:
     """Keep any columns the user added, in their position."""
-    header = list(live_header or COLUMNS)
+    header = [("Added by" if h == "Source" else h) for h in (live_header or COLUMNS)]
     for c in COLUMNS:
         if c not in header:
             header.append(c)
@@ -230,60 +263,137 @@ class SheetsBackend:
 
     def init(self) -> None:
         tab = self.tab()
-        sid = tab["properties"]["sheetId"]
-        col = {c: i for i, c in enumerate(COLUMNS)}
-        widths = {"Category": 150, "Fit": 50, "Company": 150, "Role": 280, "Status": 120,
-                  "Applied": 100, "Comp": 120, "Location": 180, "Source": 130,
-                  "Last updated": 105, "URL": 220, "Notes": 360, "Fit reasoning": 360, "ID": 160}
-
-        def rng(c, r0=1):
-            return {"sheetId": sid, "startRowIndex": r0, "startColumnIndex": col[c], "endColumnIndex": col[c] + 1}
-
-        def dropdown(c, options):
-            return {"setDataValidation": {"range": rng(c), "rule": {
-                "condition": {"type": "ONE_OF_LIST", "values": [{"userEnteredValue": o} for o in options]},
-                "strict": False, "showCustomUi": True}}}
-
-        reqs = [
-            {"updateSheetProperties": {"properties": {"sheetId": sid, "title": TAB,
-                                                      "gridProperties": {"frozenRowCount": 1, "frozenColumnCount": 3}},
-                                       "fields": "title,gridProperties.frozenRowCount,gridProperties.frozenColumnCount"}},
-            {"repeatCell": {"range": {"sheetId": sid, "startRowIndex": 0, "endRowIndex": 1},
-                            "cell": {"userEnteredFormat": {"textFormat": {"bold": True},
-                                                           "backgroundColor": {"red": 0.93, "green": 0.93, "blue": 0.93}}},
-                            "fields": "userEnteredFormat(textFormat,backgroundColor)"}},
-            dropdown("Category", CATEGORIES),
-            dropdown("Status", STATUSES),
-            {"setBasicFilter": {"filter": {"range": {"sheetId": sid, "startRowIndex": 0,
-                                                     "startColumnIndex": 0, "endColumnIndex": len(COLUMNS)}}}},
-        ]
-        for c in DATE_COLUMNS:
-            reqs.append({"repeatCell": {"range": rng(c), "cell": {"userEnteredFormat": {
-                "numberFormat": {"type": "DATE", "pattern": "yyyy-mm-dd"}}},
-                "fields": "userEnteredFormat.numberFormat"}})
-        for c in ("Notes", "Fit reasoning"):
-            reqs.append({"repeatCell": {"range": rng(c), "cell": {"userEnteredFormat": {"wrapStrategy": "WRAP"}},
-                                        "fields": "userEnteredFormat.wrapStrategy"}})
-        for c, w in widths.items():
-            reqs.append({"updateDimensionProperties": {"range": {"sheetId": sid, "dimension": "COLUMNS",
-                                                                 "startIndex": col[c], "endIndex": col[c] + 1},
-                                                       "properties": {"pixelSize": w}, "fields": "pixelSize"}})
-        if not tab.get("conditionalFormats"):
-            reqs.append({"addConditionalFormatRule": {"index": 0, "rule": {
-                "ranges": [rng("Fit")],
-                "gradientRule": {
-                    "minpoint": {"type": "NUMBER", "value": "1", "color": {"red": 0.96, "green": 0.6, "blue": 0.6}},
-                    "midpoint": {"type": "NUMBER", "value": "5", "color": {"red": 1, "green": 0.9, "blue": 0.6}},
-                    "maxpoint": {"type": "NUMBER", "value": "10", "color": {"red": 0.6, "green": 0.85, "blue": 0.6}}}}}})
+        reqs = init_requests(tab["properties"]["sheetId"], bool(tab.get("conditionalFormats")))
         self._req("POST", ":batchUpdate", json={"requests": reqs})
         rows, header = self.read()
         if not header:
             self.write([], COLUMNS)
 
 
+def init_requests(sid: int, has_color_rule: bool) -> list[dict]:
+    """Formatting for a new tracker sheet. Field masks use comma paths, which both
+    the Sheets API and the claude.ai connector accept."""
+    col = {c: i for i, c in enumerate(COLUMNS)}
+    widths = {"Category": 150, "Fit": 50, "Company": 150, "Role": 280, "Status": 120,
+              "Applied": 100, "Comp": 120, "Location": 180, "Added by": 90,
+              "Last updated": 105, "URL": 220, "Notes": 360, "Fit reasoning": 360, "ID": 160}
+
+    def rng(c, r0=1):
+        return {"sheetId": sid, "startRowIndex": r0, "startColumnIndex": col[c], "endColumnIndex": col[c] + 1}
+
+    def dropdown(c, options):
+        return {"setDataValidation": {"range": rng(c), "rule": {
+            "condition": {"type": "ONE_OF_LIST", "values": [{"userEnteredValue": o} for o in options]},
+            "strict": False, "showCustomUi": True}}}
+
+    reqs = [
+        {"updateSheetProperties": {"properties": {"sheetId": sid, "title": TAB,
+                                                  "gridProperties": {"frozenRowCount": 1, "frozenColumnCount": 3}},
+                                   "fields": "title,gridProperties.frozenRowCount,gridProperties.frozenColumnCount"}},
+        {"repeatCell": {"range": {"sheetId": sid, "startRowIndex": 0, "endRowIndex": 1},
+                        "cell": {"userEnteredFormat": {"textFormat": {"bold": True},
+                                                       "backgroundColor": {"red": 0.93, "green": 0.93, "blue": 0.93}}},
+                        "fields": "userEnteredFormat.textFormat,userEnteredFormat.backgroundColor"}},
+        dropdown("Category", CATEGORIES),
+        dropdown("Status", STATUSES),
+        dropdown("Added by", ADDED_BY),
+        {"setBasicFilter": {"filter": {"range": {"sheetId": sid, "startRowIndex": 0,
+                                                 "startColumnIndex": 0, "endColumnIndex": len(COLUMNS)}}}},
+    ]
+    for c in DATE_COLUMNS:
+        reqs.append({"repeatCell": {"range": rng(c), "cell": {"userEnteredFormat": {
+            "numberFormat": {"type": "DATE", "pattern": "yyyy-mm-dd"}}},
+            "fields": "userEnteredFormat.numberFormat"}})
+    for c in ("Notes", "Fit reasoning"):
+        reqs.append({"repeatCell": {"range": rng(c), "cell": {"userEnteredFormat": {"wrapStrategy": "WRAP"}},
+                                    "fields": "userEnteredFormat.wrapStrategy"}})
+    for c, w in widths.items():
+        reqs.append({"updateDimensionProperties": {"range": {"sheetId": sid, "dimension": "COLUMNS",
+                                                             "startIndex": col[c], "endIndex": col[c] + 1},
+                                                   "properties": {"pixelSize": w}, "fields": "pixelSize"}})
+    if not has_color_rule:
+        reqs.append({"addConditionalFormatRule": {"index": 0, "rule": {
+            "ranges": [rng("Fit")],
+            "gradientRule": {
+                "minpoint": {"type": "NUMBER", "value": "1", "color": {"red": 0.96, "green": 0.6, "blue": 0.6}},
+                "midpoint": {"type": "NUMBER", "value": "5", "color": {"red": 1, "green": 0.9, "blue": 0.6}},
+                "maxpoint": {"type": "NUMBER", "value": "10", "color": {"red": 0.6, "green": 0.85, "blue": 0.6}}}}}})
+    return reqs
+
+
+def _col_letter(n: int) -> str:
+    s = ""
+    while n:
+        n, r = divmod(n - 1, 26)
+        s = chr(65 + r) + s
+    return s
+
+
+class ConnectorBackend:
+    """Google Sheet through the claude.ai Sheets connector. The script can't call the
+    connector, so reads come from a file Claude saves, and writes go to a file Claude
+    sends. `verify-write` then checks the sheet matches."""
+
+    name = "connector"
+    MAX_AGE_MIN = 20
+
+    def __init__(self, cfg: dict):
+        self.sheet_id = cfg.get("sheet_id")
+        if not self.sheet_id:
+            sys.exit("profile.yaml tracker.sheet_id is empty. Run /setup (Google Sheets step).")
+
+    def read_instructions(self) -> str:
+        return (f'With the Google Sheets connector, call get_values(spreadsheetId="{self.sheet_id}", '
+                f'range="{TAB}!A1:Z") and save the JSON result verbatim to {CONNECTOR_READ}, then re-run.')
+
+    def read(self) -> tuple[list[dict], list[str] | None]:
+        if not CONNECTOR_READ.exists():
+            sys.exit("No fresh copy of the sheet. " + self.read_instructions())
+        age = (dt.datetime.now().timestamp() - CONNECTOR_READ.stat().st_mtime) / 60
+        if age > self.MAX_AGE_MIN:
+            sys.exit(f"The saved copy of the sheet is {age:.0f} minutes old. " + self.read_instructions())
+        data = json.loads(CONNECTOR_READ.read_text())
+        values = data.get("values", []) if isinstance(data, dict) else data
+        if not values:
+            return [], None
+        header = [str(h) for h in values[0]]
+        rows = [{h: (str(v[i]) if i < len(v) else "") for i, h in enumerate(header)} for v in values[1:]]
+        return clean(rows), header
+
+    @staticmethod
+    def _cell(col: str, v: str):
+        if col == "Fit" and re.fullmatch(r"-?\d+(\.\d+)?", v or ""):
+            return float(v) if "." in v else int(v)
+        if col in DATE_COLUMNS or not v:
+            return v  # YYYY-MM-DD becomes a real date in the sheet
+        # The connector parses input as if typed, so "8/12" or "+1 referral" would turn
+        # into a date or a formula. A leading ' keeps it as text (and isn't shown).
+        return "'" + v
+
+    def write(self, rows: list[dict], header: list[str]) -> None:
+        last_col = _col_letter(len(header))
+        values = [header] + [[self._cell(h, r.get(h, "")) for h in header] for r in rows]
+        steps = [{"tool": "batch_clear_values", "spreadsheetId": self.sheet_id, "ranges": [f"{TAB}!A1:Z"]}]
+        for i in range(0, len(values), CHUNK_ROWS):
+            chunk = values[i:i + CHUNK_ROWS]
+            steps.append({"tool": "update_values", "spreadsheetId": self.sheet_id,
+                          "range": f"{TAB}!A{i + 1}:{last_col}{i + len(chunk)}", "values": chunk})
+        CONNECTOR_WRITE.write_text(json.dumps({"spreadsheetId": self.sheet_id, "steps": steps},
+                                              indent=1, ensure_ascii=False))
+        write_csv(PENDING, rows, header)
+
+    def where(self) -> str:
+        return f"https://docs.google.com/spreadsheets/d/{self.sheet_id}/edit"
+
+
 def backend(prof: dict):
     cfg = prof.get("tracker") or {}
-    return SheetsBackend(cfg) if cfg.get("backend") == "sheets" else CsvBackend()
+    kind = cfg.get("backend")
+    if kind == "connector":
+        return ConnectorBackend(cfg)
+    if kind == "sheets":
+        return SheetsBackend(cfg)
+    return CsvBackend()
 
 
 # --- Diff / protection ----------------------------------------------------
@@ -351,6 +461,9 @@ def cmd_check(args):
     if isinstance(b, SheetsBackend):
         print(f"Service account: {b.creds.service_account_email}")
         print(f"Sheet title:     {b.meta()['properties']['title']}")
+    if isinstance(b, ConnectorBackend) and not CONNECTOR_READ.exists():
+        print(f"Connector backend for {b.where()}\n" + b.read_instructions())
+        return
     rows, _ = b.read()
     print(f"OK: {b.name} backend, {len(rows)} rows at {b.where()}")
 
@@ -358,8 +471,21 @@ def cmd_check(args):
 def cmd_init_sheet(args):
     prof = load_profile()
     b = backend(prof)
+    if isinstance(b, ConnectorBackend):
+        path = TRACKER_DIR / "connector-init.json"
+        TRACKER_DIR.mkdir(parents=True, exist_ok=True)
+        steps = [
+            {"tool": "update_spreadsheet", "spreadsheetId": b.sheet_id,
+             "requests": init_requests(args.sheet_gid, False)},
+            {"tool": "update_values", "spreadsheetId": b.sheet_id,
+             "range": f"{TAB}!A1:{_col_letter(len(COLUMNS))}1", "values": [COLUMNS]},
+        ]
+        path.write_text(json.dumps({"spreadsheetId": b.sheet_id, "steps": steps}, indent=1))
+        print(f"Send the steps in {path} with the Google Sheets connector, in order "
+              f"(sheet tab id {args.sheet_gid}; check it with get_spreadsheet if unsure).")
+        return
     if not isinstance(b, SheetsBackend):
-        sys.exit("tracker.backend is not 'sheets' in profile/profile.yaml.")
+        sys.exit("tracker.backend is not 'sheets' or 'connector' in profile/profile.yaml.")
     b.init()
     print(f"Formatted {b.where()}")
 
@@ -450,8 +576,13 @@ def cmd_plan(args):
         kind = op.get("op")
         if kind == "add":
             row = {k: ("" if v is None else str(v)) for k, v in op["row"].items()}
-            row.setdefault("Last updated", today())
-            row["ID"] = row_id(row)
+            if not row.get("Last updated"):
+                row["Last updated"] = today()
+            cleaned = clean([row])  # normalize dates, map old "Source" values, assign the ID
+            if not cleaned:
+                skipped.append({**op, "why": "empty row"})
+                continue
+            row = cleaned[0]
             key = (norm_company(row.get("Company", "")), (row.get("Role") or "").strip().lower())
             if row["ID"] in live_by_id or key in by_name:
                 skipped.append({**op, "why": "already in tracker"})
@@ -557,20 +688,61 @@ def cmd_apply(args):
         out = sort_rows(out)
     hdr = header_for(out, header)
     b.write(out, hdr)
+    if isinstance(b, ConnectorBackend):
+        LOCKS.write_text(json.dumps(locks, indent=2))
+        path.rename(path.with_suffix(".pending.json"))
+        n = len(json.loads(CONNECTOR_WRITE.read_text())["steps"])
+        print(f"Planned {len(plan['ops'])} ops ({len(out)} rows). Now, with the Google Sheets connector:\n"
+              f"  1. send the {n} steps in {CONNECTOR_WRITE} in order, copying each step's fields verbatim\n"
+              f"  2. {b.read_instructions()}\n"
+              f"  3. run: uv run scripts/tracker.py verify-write")
+        return
+    finalize(b, plan, path, hdr, locks)
+
+
+def finalize(b, plan: dict, path: Path, hdr: list[str], locks: dict) -> None:
     after, _ = b.read()  # read back so dates/numbers match what the backend stores
     write_csv(LAST_WRITTEN, after, hdr)
     write_csv(SNAPSHOT, after, hdr)
+    PENDING.unlink(missing_ok=True)
     locks["fields"] = {i: f for i, f in locks["fields"].items() if f}
     LOCKS.write_text(json.dumps(locks, indent=2))
-    if b.name == "sheets":
+    if b.name in ("sheets", "connector"):
         write_csv(CSV_PATH, after, hdr)  # local copy for agents to read
-    path.rename(path.with_suffix(".applied.json"))
+    path.rename(path.with_name("plan.applied.json"))
     # Change files are one-shot: rename them so a later plan doesn't replay their notes.
     for c in plan.get("consumes", []):
         cp = Path(c)
         if cp.exists():
             cp.rename(cp.with_name(f"{cp.stem}.applied-{dt.datetime.now():%H%M%S}.jsonl"))
-    print(f"Applied {len(plan['ops'])} ops. {len(after)} rows at {b.where()}")
+    print(f"Applied {len(plan.get('ops', []))} ops. {len(after)} rows at {b.where()}")
+
+
+def cmd_verify_write(args):
+    prof = load_profile()
+    b = backend(prof)
+    if not isinstance(b, ConnectorBackend):
+        sys.exit("verify-write is only for the connector backend.")
+    pending_plan = run_dir() / "plan.pending.json"
+    if not PENDING.exists() or not pending_plan.exists():
+        sys.exit("Nothing waiting to be verified. Run `tracker.py apply` first.")
+    want = {r["ID"]: r for r in clean(read_csv(PENDING))}
+    got_rows, hdr = b.read()
+    got = {r["ID"]: r for r in got_rows}
+    problems = [f"missing row: {w.get('Company')} / {w.get('Role')}" for i, w in want.items() if i not in got]
+    problems += [f"unexpected row: {g.get('Company')} / {g.get('Role')}" for i, g in got.items() if i not in want]
+    for i in want.keys() & got.keys():
+        for c in COLUMNS:
+            if (want[i].get(c) or "").strip() != (got[i].get(c) or "").strip():
+                problems.append(f"{want[i].get('Company')} / {want[i].get('Role')}: {c} is "
+                                f"{got[i].get(c)!r}, expected {want[i].get(c)!r}")
+    if problems:
+        print(f"The sheet doesn't match the plan ({len(problems)} differences):")
+        for p_ in problems[:30]:
+            print("  " + p_)
+        sys.exit(f"Re-send the steps in {CONNECTOR_WRITE} (they're unchanged), read the sheet back, "
+                 "and run verify-write again.")
+    finalize(b, json.loads(pending_plan.read_text()), pending_plan, hdr or COLUMNS, load_locks())
 
 
 def cmd_exclude(args):
@@ -586,7 +758,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("check")
-    sub.add_parser("init-sheet")
+    ini = sub.add_parser("init-sheet")
+    ini.add_argument("--sheet-gid", type=int, default=0, help="(connector) the tab's sheetId; a new sheet's is 0")
+    sub.add_parser("verify-write")
     sub.add_parser("pull")
     p = sub.add_parser("plan")
     p.add_argument("--scored", nargs="*", help="scored.jsonl files from score.py")
@@ -605,7 +779,8 @@ def main():
     sub.add_parser("exclude")
     args = ap.parse_args()
     {"check": cmd_check, "init-sheet": cmd_init_sheet, "pull": cmd_pull, "plan": cmd_plan,
-     "apply": cmd_apply, "change": cmd_change, "exclude": cmd_exclude}[args.cmd](args)
+     "apply": cmd_apply, "change": cmd_change, "exclude": cmd_exclude,
+     "verify-write": cmd_verify_write}[args.cmd](args)
 
 
 if __name__ == "__main__":

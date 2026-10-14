@@ -7,6 +7,8 @@ location:
   timezone: America/Denver
   remote: required
   onsite_ok_metros: [Boulder, Denver]
+  relocate_to: []
+  relocation_help_required: false
   preferred_metros: [Denver, Boulder]
   exclude_location_patterns:
     - '\b(EMEA|APAC|APJ|LATAM|ANZ)\b'
@@ -21,6 +23,7 @@ location:
 comp:
   currency: USD
   min_top_of_range: 130000
+  by_title: []
 
 level:
   current: mid
@@ -36,6 +39,7 @@ titles:
     - 'developer (advocate|relations)'
     - '\bdevrel\b'
   exclude: ['\bintern\b', 'account executive', 'manager, solutions', 'solutions engineering manager']
+  stretch: []
 
 industries:
   core: [developer APIs, developer platforms, web hosting, cloud developer tooling]

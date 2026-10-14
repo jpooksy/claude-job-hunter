@@ -51,13 +51,15 @@ Update an existing row (use its exact `ID` from the rows file):
 
 Add an application that isn't tracked:
 ```json
-{"op": "add", "row": {"Category": "Applied (waiting)", "Company": "Acme", "Role": "Solutions Engineer", "Status": "Applied", "Applied": "2026-09-02", "Source": "Inbox", "URL": "", "Notes": "Found in inbox: application confirmation 2026-09-02"}}
+{"op": "add", "row": {"Category": "Applied (waiting)", "Company": "Acme", "Role": "Solutions Engineer", "Status": "Applied", "Applied": "2026-09-02", "Added by": "Email", "URL": "", "Notes": "Found in inbox: application confirmation 2026-09-02"}}
 ```
 
 Add a door-open company:
 ```json
-{"op": "add", "row": {"Category": "Door open (reapply)", "Company": "Acme", "Role": "", "Status": "Closed", "Source": "Door open", "Notes": "2025-03: recruiter said reach out again in 6 months"}}
+{"op": "add", "row": {"Category": "Door open (reapply)", "Company": "Acme", "Role": "", "Status": "Closed", "Added by": "Email", "Notes": "2025-03: recruiter said reach out again in 6 months"}}
 ```
+
+Always set `"Added by": "Email"` on rows you add (it tells the user the row came from their inbox).
 
 Status and Category values to use:
 - Status: Applied, In Conversation, Interviewing, Offer, Rejected, Hiring Freeze, Closed
@@ -66,6 +68,22 @@ Status and Category values to use:
   Status "Rejected".
 - Set `Applied` (YYYY-MM-DD) whenever you learn the application date.
 
+Rules that keep the tracker trustworthy:
+- **Only real applications.** Log an application only when there's evidence
+  the user applied: a confirmation email, or the user's own sent application.
+  A recruiter or sourcer reaching out is **not** an application. Add it only
+  if the user replied (Status In Conversation), and otherwise mention it in
+  your report.
+- **Always find the role title.** Open the confirmation email (or the job link
+  in it) to get the exact title. If it truly isn't there, leave Role empty
+  and list the row under "Need a title" in your report.
+- **Never set Category "Passed".** That's the user's own decision not to
+  apply, so it can't come from email. If an application conflicts with their
+  dealbreakers, keep it as Applied and add a note ("conflicts with
+  dealbreaker: enterprise sales").
+- **Rejection reasons matter.** If the email says why (e.g. "we need someone
+  on Eastern time"), put it in the note. Later searches use it.
+
 Only write an op when an email supports it, and cite the date and what the
 email said in `append_notes`. Never write email bodies or recruiters' contact
 details. If nothing changed for a row, write nothing for it.
@@ -73,5 +91,8 @@ details. If nothing changed for a row, write nothing for it.
 **Privacy**: you're reading personal email. Look only at job-search messages.
 Don't open, summarize or quote anything unrelated.
 
-End with a short report: rows checked, ops written by type, and any thread you
-couldn't classify (company + date only).
+End with a short report:
+- rows checked, and ops written by type
+- **Need a title**: rows added without a role title
+- recruiter outreach you didn't log (company + date)
+- any thread you couldn't classify (company + date only)

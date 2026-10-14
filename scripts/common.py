@@ -33,7 +33,7 @@ SEEN_JSONL = DATA_DIR / "seen.jsonl"
 
 COLUMNS = [
     "Category", "Fit", "Company", "Role", "Status", "Applied", "Comp",
-    "Location", "Source", "Last updated", "URL", "Notes", "Fit reasoning", "ID",
+    "Location", "Added by", "Last updated", "URL", "Notes", "Fit reasoning", "ID",
 ]
 DATE_COLUMNS = {"Applied", "Last updated"}
 
@@ -45,10 +45,19 @@ STATUSES = [
     "Not Applied", "Applied", "In Conversation", "Interviewing", "Offer",
     "Rejected", "Ghosted", "Hiring Freeze", "Closed",
 ]
-SOURCES = [
-    "My list", "Signal company", "Similar company", "Warm network",
-    "Inbox", "Door open",
+# Who put the row in the tracker. Your relationship with a company (you
+# interviewed there, they said stay in touch) lives in Category, Notes and
+# Fit reasoning, not here.
+ADDED_BY = [
+    "You",     # from your own list, or something you told Claude
+    "Email",   # found in your inbox (an application, interview or rejection)
+    "Claude",  # a role Claude recommends from its job search
 ]
+# Old "Source" values from earlier versions of the template, mapped to Added by.
+LEGACY_SOURCE = {
+    "my list": "You", "signal company": "You", "door open": "Email", "warm network": "You",
+    "inbox": "Email", "applied (gmail)": "Email", "similar company": "Claude",
+}
 
 COMPANY_COLUMNS = [
     "company", "domain", "relationship", "ats", "slug", "detect", "careers_url",

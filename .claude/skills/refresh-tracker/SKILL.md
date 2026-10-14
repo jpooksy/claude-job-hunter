@@ -9,6 +9,8 @@ Run this once or twice a week. Use today's date for `<date>`.
 
 ## 1. Pull and respect hand edits
 
+Connector backend: read the sheet first (CLAUDE.md → Writing the tracker).
+
 ```bash
 uv run scripts/tracker.py pull
 ```
@@ -67,8 +69,8 @@ Leave out inputs that don't exist. Show the plan grouped as: status changes
 closed, new roles. Show **skipped** items too. Those are fields the user
 edited by hand. Ask about each one ("you have Acme as Applied; an email on
 Oct 2 says rejected. Update it?") and, for each yes, queue the change with
-`--force` and re-plan. Then `apply` and set `email.last_audit` to today in
-profile.yaml.
+`--force` and re-plan. Then `apply`, finish the write (CLAUDE.md → Writing the tracker), and set
+`email.last_audit` to today in profile.yaml.
 
 ## 6. Report
 
