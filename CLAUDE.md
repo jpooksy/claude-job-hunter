@@ -51,7 +51,8 @@ How the write finishes depends on `profile.yaml → tracker.backend`:
 - **`sheets`** (service account) and **`csv`**: `apply` writes directly.
 
 The local copy `tracker/jobs.csv` is refreshed after every write, so agents can
-read it.
+read it. **After every write, give the user the tracker link** (the
+`Tracker:` line `apply` prints) as a clickable link.
 
 ## Rules
 

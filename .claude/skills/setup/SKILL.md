@@ -75,6 +75,13 @@ alone.
   changed ("Level: mid only (was mid + senior)").
 - **Don't use email or Drive before their step** unless the user points you to
   a specific email or file.
+- **Never go silent between steps.** Every step starts with a chat message
+  (progress header, what it's for). Never run two pickers back to back, or move
+  from one step to the next, without a chat message in between that says what
+  just happened ("Connected: I can see 50 application emails") and what's next.
+- **While you wait on something** (the inbox check, reading postings), say:
+  "Nothing for you to do right now. I'll message you when it's done (about N
+  minutes)."
 - **Script problems you work around** go in `runs/setup/issues.md`, not in the
   user's chat. Mention once at the end that you logged them.
 
@@ -321,7 +328,10 @@ explanation for each option **in the chat text** first:
    Run `uv run scripts/tracker.py init-sheet` and send the steps in
    `tracker/connector-init.json` with the Sheets connector, in order and
    verbatim.
-4. Give the user the link to the sheet.
+4. **Give the user the link to the sheet, as a clickable link in the chat**,
+   right away: "Here's your tracker: [Job Hunt Tracker](https://docs.google.com/spreadsheets/d/<id>/edit).
+   It's empty for now; I'll fill it in the next step." Never just say the sheet
+   is "set up". The user shouldn't have to look for it in Drive.
 
 **Service account.** Set `tracker.backend: sheets`, `sheet_id`, and
 `service_account` (the path to their existing key). Share the sheet with the
@@ -405,12 +415,13 @@ Show in the chat, before asking:
   `guessed` board, list its link (e.g. `https://jobs.ashbyhq.com/<slug>`) and
   ask whether it's the right company.
 
-Ask once ("Add all of this?"), then apply.
+Ask once ("Add all of this?"), then apply, and give the tracker link again
+("Your tracker now has 90 rows: [Job Hunt Tracker](…)").
 
 ## Step 6 of 6: What's next
 
 Keep it short. Open the tracker for them (CSV: `open tracker/jobs.csv`; Sheet:
-give the link).
+the clickable link, and offer `! open "<link>"` to open it in the browser).
 
 1. **What's set up**, three lines: profile, email (yes/no), tracker (link or
    path) with its row count.

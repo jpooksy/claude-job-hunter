@@ -482,7 +482,8 @@ def cmd_init_sheet(args):
         ]
         path.write_text(json.dumps({"spreadsheetId": b.sheet_id, "steps": steps}, indent=1))
         print(f"Send the steps in {path} with the Google Sheets connector, in order "
-              f"(sheet tab id {args.sheet_gid}; check it with get_spreadsheet if unsure).")
+              f"(sheet tab id {args.sheet_gid}; check it with get_spreadsheet if unsure).\n"
+              f"Then give the user this link in the chat: {b.where()}")
         return
     if not isinstance(b, SheetsBackend):
         sys.exit("tracker.backend is not 'sheets' or 'connector' in profile/profile.yaml.")
@@ -715,7 +716,7 @@ def finalize(b, plan: dict, path: Path, hdr: list[str], locks: dict) -> None:
         cp = Path(c)
         if cp.exists():
             cp.rename(cp.with_name(f"{cp.stem}.applied-{dt.datetime.now():%H%M%S}.jsonl"))
-    print(f"Applied {len(plan.get('ops', []))} ops. {len(after)} rows at {b.where()}")
+    print(f"Applied {len(plan.get('ops', []))} ops. {len(after)} rows.\nTracker: {b.where()}")
 
 
 def cmd_verify_write(args):
