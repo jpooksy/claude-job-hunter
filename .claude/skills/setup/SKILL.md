@@ -5,20 +5,45 @@ description: First-run setup for claude-job-hunter. Collects the user's resume a
 
 # Setup
 
-Walk the user through setup one step at a time. **Never dump every question at
-once.** Ask a round, wait, write what you learned to the files, then move on.
-After every step, say in one line what was saved and what comes next.
+Walk the user through setup one step at a time. After every step, say in one
+line what was saved and what comes next.
 
 If `profile/profile.yaml` already exists, ask which part to redo (profile
 questions, email, Google Sheets, companies, calibration) and jump to that step.
 To set up only one piece ("connect Gmail", "switch to Google Sheets"), run that
 step alone.
 
+## How to ask (applies to every step)
+
+- **One question per message.** Ask, then wait for the user's reply before
+  doing anything else. Never bundle a follow-up ("what was the Dataiku role?")
+  with the next question. Ask the follow-up on its own and wait.
+- **Open-ended questions** (files, links, lists, descriptions) go in a
+  **plain chat message**, never AskUserQuestion. The user answers by dragging
+  in a file, pasting text or a link, typing, or saying "skip".
+- **AskUserQuestion only for real choices**: remote vs. hybrid, yes/no on email
+  and Google Sheets, "add it or skip?". Never offer an option that means "I'll
+  give you the content next" (like "I'll type it"). The picker records only the
+  label, and the user never gets to type. If an answer needs content, ask for
+  it in a plain message and wait for the next reply.
+- **Every question has the same shape:**
+  1. a plain question about the user's real situation, in the second person,
+     with no jargon ("Which roles did you…", "Are you already tracking…")
+  2. **what counts as an answer**, always including a low-effort option ("just
+     the company names is fine")
+  3. **why it helps**, in terms of their results
+  4. **what skipping costs**, in one line (optional questions only)
+- **Never ask for the same thing twice.** Later rounds start from what earlier
+  answers already gave you, and ask only what's missing.
+- **Skips:** discourage a skip **once**. Reply with the one-line cost and ask
+  (AskUserQuestion) "Add it after all" / "Skip it". If they skip, accept it and
+  never bring it up again.
+
 ## Step 0: Prepare (no questions)
 
 ```bash
 uv --version || echo "uv missing"
-mkdir -p profile/uploads data tracker runs drafts
+mkdir -p profile/uploads data tracker runs/setup drafts
 cp -n templates/profile/* profile/
 cp -n templates/companies.csv data/companies.csv
 ```
@@ -27,80 +52,83 @@ If uv is missing, have the user install it (`brew install uv`, or
 `curl -LsSf https://astral.sh/uv/install.sh | sh`) and restart the terminal.
 
 Open with a short welcome: what setup does (about 15–25 minutes), and that
-email and Google Sheets are recommended but optional.
+email and Google Sheets are recommended but optional. Mention that they can
+drag files straight into the chat.
 
-## Step 1: Files
+## Step 1: Your files and history
 
-Collect files **one question at a time**. Ask each one with AskUserQuestion,
-wait for the answer, deal with it, then ask the next. Never list all six at
-once.
-
-Every question:
-- says in one line **why it matters** and **what skipping costs**
-- offers these ways to answer: drag a file into the chat (that pastes its path),
-  type or paste the information directly, or skip (questions 2–6 only)
-
-Options for a question: "I'll drag in a file", "I'll type it instead", "Skip".
-Question 5 also gets "Create a sheet for me to fill in". The user can always
-answer in free text instead.
+Six questions, one per message, in this order. Use the wording below as a
+guide (keep the shape; your own words are fine).
 
 **Handling a file.** Copy it into `profile/uploads/` right away
 (`cp "<path>" profile/uploads/`) and confirm in one line ("Got it:
 resume.pdf"). If the copy fails with "Operation not permitted" (macOS privacy
-protection for ~/Downloads, ~/Desktop, ~/Documents), have the user run it
-themselves by typing `! cp "<path>" profile/uploads/` in the prompt, or drag
-the file into `profile/uploads/` in Finder.
+protection for ~/Downloads, ~/Desktop, ~/Documents), have the user type
+`! cp "<path>" profile/uploads/` in the prompt, or drag the file into
+`profile/uploads/` in Finder.
 
-**Handling a skip.** Discourage it **once**: reply with the one-line cost and
-ask "Add it after all, or skip?" If they still skip, accept it and move on.
-Never bring it up again during setup.
+1. **Resume** (required, so no skip)
+   > Let's start with your resume. Drag the file in (PDF, Word or text), or
+   > paste the text. Everything gets checked against it: each posting's
+   > requirements, and anything I write for your applications.
 
-### The questions
+2. **LinkedIn profile**
+   > Can you add your LinkedIn profile as a PDF? On LinkedIn, open your
+   > profile → **Resources → Save to PDF**, then drag the file in. Pasting
+   > your profile URL also works if downloading is a hassle. It catches things
+   > your resume leaves out, like older roles, projects and skills. If you
+   > skip it, I'll judge matches on your resume alone.
 
-1. **Resume** (required: no skip option)
-   *Why:* every posting's required qualifications are checked against it, and
-   /apply only claims experience that appears here.
-   Accept PDF, DOCX, MD or TXT, or pasted text.
+3. **Other resume versions**
+   > Do you have other versions of your resume, for a different kind of role?
+   > Drag them in, or say "just the one". Each version shows how you pitch
+   > yourself for that kind of role. If you skip it, roles outside your main
+   > resume's framing will score lower.
 
-2. **LinkedIn profile PDF**: on LinkedIn, go to your profile → **Resources →
-   Save to PDF**.
-   *Why:* it fills gaps your resume leaves out (older roles, projects,
-   skills). *Skipping:* matches are judged on the resume alone.
+4. **Roles you interviewed for**
+   > Which roles did you apply to and get at least one interview for? A saved
+   > posting, a link, pasted text, or just the **company and role title** all
+   > work. Old postings are usually taken down, so titles are fine. Add how
+   > far you got if you remember. These are proof of what you're qualified
+   > for, and I'll look for more roles like them. If you skip it, I'll
+   > research from your company list alone.
 
-3. **Other versions of your resume** (if you target more than one kind of role)
-   *Why:* each version shows how you pitch yourself for a different role
-   family. *Skipping:* roles outside your main resume's framing score lower.
+   Only roles that got an interview. Postings they merely liked belong in
+   Round 3 (Targets), where they get the reality check. If the user gives
+   both, keep the liked ones for Round 3.
 
-4. **Job descriptions you liked, or got interviews for** (files, links or pasted text)
-   *Why:* they're the clearest signal of what you're a fit for, and the
-   researcher looks for more like them. *Skipping:* the research relies only
-   on your company list.
+5. **What you're already tracking**
+   > Are you already tracking your job search anywhere: a spreadsheet, a notes
+   > doc, a Notion page, bookmarks? Paste a Google Sheets link, drag in a file,
+   > or paste the list. I'll bring it in so your applications and the
+   > companies you're watching carry over instead of starting from scratch.
+   > If you don't have one, I can give you a blank sheet to fill in. If you
+   > skip it, you start with an empty tracker, and past applications only
+   > show up if you connect email.
 
-5. **Target companies, or an old job-tracking spreadsheet**
-   *Why:* it seeds the company list and tracker, so nothing you already know
-   about is lost. *Skipping:* the first search starts from your interviews alone.
-   Ways to answer:
-   - drag in a file (CSV, XLSX), or paste a Google Sheets link (read it with
-     the Drive connector)
-   - type the companies straight into the chat
-   - **"Create a sheet for me to fill in"**:
-     - **If the Google Drive connector is already connected** (its tools,
-       e.g. `create_file`, are available): create a Google Sheet titled
-       "Job Hunt – Target companies" using `create_file` with
-       `contentMimeType: text/csv` and `textContent:
-       "Company,Website,Roles of interest,Why I'm interested,Notes\n"`. That
-       converts it to a native Sheet. Give the user the link, and wait until
-       they say they're done. Then read it back with the Drive connector.
-     - **Otherwise:** write `profile/uploads/target-companies.csv` with the
-       same header, open it (`open profile/uploads/target-companies.csv`),
-       and wait until the user says they've saved it.
+   If they want a blank sheet:
+   - **If the Google Drive connector is already connected** (its tools, e.g.
+     `create_file`, are available): create a Google Sheet titled "Job Hunt –
+     My list" using `create_file` with `contentMimeType: text/csv` and
+     `textContent: "Company,Role,Status,Date applied,Link,Notes\n"`. That
+     converts it to a native Sheet. Send the link and wait until they say
+     they're done.
+   - **Otherwise:** write `profile/uploads/my-list.csv` with the same header,
+     `open` it, and wait until they say they've saved it.
+   Don't connect the Drive connector here. That happens in Step 4.
 
-     Don't connect the Drive connector here just for this. That happens in
-     Step 4.
+   Read what they shared (Google Sheets link → Drive connector
+   `read_file_content`; files → see below), then **describe it back in two or
+   three lines** ("About 110 rows: companies, roles, a status column and your
+   own fit scores. Some cells list several roles."). Ask only about what you
+   genuinely can't tell, one question at a time. Save a copy to
+   `profile/uploads/`. It's imported into the tracker in Step 5.
 
-6. **Brag doc, performance reviews, or portfolio**
-   *Why:* they give /apply real proof points (results, praise, projects) for
-   application answers. *Skipping:* answers rely on resume bullets only.
+6. **Proof points**
+   > Last file: do you have a brag doc, performance reviews, or a portfolio?
+   > Drag them in, or paste a few wins (results, praise, projects). I'll use
+   > them as real proof in your application answers. If you skip it, answers
+   > will rely on your resume bullets only.
 
 ### Reading the files
 
@@ -108,40 +136,46 @@ Never bring it up again during setup.
 - DOCX: `uv run --with python-docx python -c "import docx,sys; print('\n'.join(p.text for p in docx.Document(sys.argv[1]).paragraphs))" FILE`
 - XLSX / CSV: `uv run --with openpyxl python -c ...`, or read the CSV directly.
 
-### Writing resume.md
+### Writing what you learned
 
-Write `profile/resume.md`: a faithful, complete text version (roles, dates,
-bullets, skills, education). Merge in anything extra from the LinkedIn PDF and
-other resume versions, and mark where it came from. **Don't improve, reword or
-embellish anything.** It's the factual record the jd-reader checks against.
-Save job descriptions to `profile/uploads/` and summarize what they have in
-common in `profile/signals.md` for the researcher. Keep target companies for
-Step 5, and brag-doc proof points for /apply.
+- `profile/resume.md`: a faithful, complete text version (roles, dates,
+  bullets, skills, education). Merge in anything extra from the LinkedIn PDF
+  and other resume versions, and mark where it came from. **Don't improve,
+  reword or embellish anything.** It's the factual record the jd-reader checks
+  against.
+- `profile/signals.md`: the roles from question 4 (company, role, how far,
+  outcome), plus what they have in common, for the researcher.
+- Proof points from question 6 → `profile/background.md` (strengths section).
 
 ## Step 2: Profile questions
 
-Draft answers from the resume first, then ask the user to **confirm or
-correct**. That's faster than asking from scratch. Keep each round short.
+Draft answers from what you already have (resume, the interview list, their
+tracker), then ask the user to **confirm or correct**. That's faster than
+asking from scratch. One round per message.
 
 **Round 1: Background** → `profile/background.md`, `profile.yaml → level, industries, titles`
-1. Which **positions are you qualified for today**? (Draft them from the
-   resume: titles held, plus roles whose day-to-day work they've clearly done.)
-2. Which **industries do you have significant experience in**? "Significant"
-   means real time in the space: you could talk shop with a customer there.
-3. Your current **level** and years of experience. Which levels should we
-   target? (Usually your current level, maybe one up.)
-4. What are you **strongest at**? (3–5 things, with proof.)
-5. Tools and technologies you've used for real, and common requirements you
-   **don't** have (so we don't chase roles that need them).
 
-**Round 2: Signals** → `profile/signals.md`, companies with relationship `interviewed` / `door_open`
-1. Which **companies have interviewed you** in the last ~2 years? For each:
-   the role, how far you got, the outcome, and why you seemed like a fit.
-   This is the most valuable input: those companies tell us where you
-   actually fit.
-2. Any companies that passed but asked you to **stay in touch**?
-3. If email will **not** be connected: which applications are open right now?
-   (Company, role, date applied, status.)
+Show your draft and ask them to correct it:
+1. **Positions you're qualified for today** (titles held, plus roles whose
+   day-to-day work they've clearly done)
+2. **Industries with significant experience**: real time in the space, enough
+   to talk shop with a customer there
+3. **Current level** and years of experience, and the levels to target
+   (usually the current level, maybe one up)
+4. **What you're strongest at** (3–5 things, with proof)
+5. **Tools you've used for real**, and common requirements you **don't** have
+   (so we don't chase roles that need them)
+
+**Round 2: Fill in the interview details** → `profile/signals.md`, companies with relationship `interviewed` / `door_open`
+
+Don't ask for the interview list again; question 4 already gave it to you.
+List the roles back and ask only what's missing for each: how far they got,
+the outcome, and what seemed to resonate. Then ask:
+- Any **interest that didn't come from an application**: recruiters who
+  reached out, or companies that passed but said **"stay in touch"**? (If
+  email will be connected, say the inbox audit will look for these too.)
+- If email will **not** be connected, and question 5 didn't cover it: which
+  applications are open right now? (Company, role, date applied, status.)
 
 **Round 3: Targets** → `profile/targets.md`, companies with relationship `target`
 
@@ -152,18 +186,22 @@ Before asking, say this plainly (in your own words):
 > it's inflated, I'll find you roles you won't get, and the good matches get
 > buried. Honest inputs get you better results.
 
-1. Companies you'd love to work at.
-2. Positions you're interested in.
+Start from what you have: the companies in their tracker (question 5) and any
+postings they said they liked. ("Your list already has 40 companies. Any to
+add, or any you've lost interest in?") Then ask:
+1. Companies you'd love to work at that aren't on the list yet.
+2. Positions you're interested in, and any postings you've seen and liked.
 
-Then **reality-check** every target position against the resume. Write a short
-table (position / verdict: qualified, stretch, not yet / one-line reason) and
-tell the user honestly. Keep stretch positions only if they want them, and say
-they'll score lower. Drop "not yet" positions from `titles.include` unless the
-user insists.
+Then **reality-check** every target position (and liked posting) against the
+resume. Write a short table (position / verdict: qualified, stretch, not yet /
+one-line reason) and tell the user honestly. Keep stretch positions only if
+they want them, and say they'll score lower. Drop "not yet" positions from
+`titles.include` unless the user insists.
 
 **Round 4: Logistics** → `profile.yaml → location, comp, search_started`
 
-Use AskUserQuestion for the multiple-choice parts:
+Ask one at a time. Use AskUserQuestion only for the multiple-choice part
+(remote required / preferred / flexible); the rest are plain questions:
 - Where you live (city, time zone), and whether remote is required,
   preferred or flexible. If hybrid or onsite is OK, in which metros?
 - Lowest acceptable pay. Explain: "a posted range whose **top** is at or
@@ -240,7 +278,9 @@ user each time:
 1. **Google Drive connector**: claude.ai → Settings → Connectors → Google
    Drive (restart Claude Code if newly connected). Claude uses it to create the
    sheet in the user's own Drive and share it with the service account.
-2. **Service account + key**: walk the user through the Cloud Console steps in
+2. **Service account + key**: if the user already has a service-account
+   JSON key they want to reuse, set its path in `tracker.service_account` and
+   skip to step 3. Otherwise, walk the user through the Cloud Console steps in
    `docs/sheets-setup.md` (create project → enable Sheets API → create service
    account → create JSON key). Then move the key into place:
    ```bash
@@ -270,9 +310,44 @@ user each time:
 Troubleshooting is in `docs/sheets-setup.md` (403 = not shared or API not
 enabled; 404 = wrong ID).
 
-## Step 5: Seed the company list
+## Step 5: Seed the company list (and import their old tracker)
 
-Write the signal, door-open, target and warm-network companies to a JSONL file
+### 5a. Import what they were already tracking (if question 5 gave you something)
+
+Turn it into tracker rows, **one row per role**:
+- **Split** cells that list several roles (separated by "•", ";", "/" or new
+  lines) into separate rows with the same company.
+- **Map their columns** to ours (Company, Role, Status, Applied, Comp,
+  Location, URL, Notes, Fit). Keep their columns we don't have in Notes.
+- **Map their category and status values** to ours (Category: Interviewing,
+  Applied (waiting), Door open (reapply), To apply, Watchlist, Passed, Closed;
+  Status: Not Applied, Applied, In Conversation, Interviewing, Offer,
+  Rejected, Ghosted, Hiring Freeze, Closed). A free-text note in a category
+  or status cell ("onsite in NYC, passed") is **the user's decision**: map it
+  to the closest value (here Passed) and copy the note into Notes.
+- **Their own scores** go in Fit, with `"lock": ["Fit"]` on the op so later
+  runs never overwrite them.
+- Dates become YYYY-MM-DD. Source is "My list". Keep URLs; posting links from
+  Greenhouse, Ashby or Lever get IDs automatically, so `/refresh-tracker` can
+  re-check them.
+- Rows that are just a company with no role → Category Watchlist, Role empty.
+
+Before writing anything, **show the mapping** in a short table (their value →
+our value, with row counts) and the 5 trickiest rows, and ask for a yes. Then
+write the ops to `runs/setup/import.jsonl`, one per line:
+`{"op": "add", "row": {...}, "lock": ["Fit"]}`, and run:
+
+```bash
+uv run scripts/tracker.py pull
+uv run scripts/tracker.py plan --changes runs/setup/import.jsonl
+uv run scripts/tracker.py apply
+```
+
+### 5b. Seed the company list
+
+Write the signal, door-open, target and warm-network companies (plus every
+company from the imported tracker, as `target`, unless it's already a signal)
+to a JSONL file
 (`{"company": ..., "domain": ...}` per line, one file per relationship) and
 import each with its relationship:
 

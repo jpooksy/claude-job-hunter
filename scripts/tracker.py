@@ -64,9 +64,22 @@ def norm_date(v: str) -> str:
     return v
 
 
+# Posting URLs on supported boards map to the same IDs ats.py uses, so imported
+# or hand-added rows can be re-checked by `ats.py verify`.
+_URL_IDS = [
+    ("greenhouse", r"(?:job-boards|boards)(?:\.eu)?\.greenhouse\.io/([A-Za-z0-9_-]+)/jobs/(\d+)"),
+    ("ashby", r"jobs\.ashbyhq\.com/([A-Za-z0-9_.%-]+)/([0-9a-f-]{36})"),
+    ("lever", r"jobs\.lever\.co/([A-Za-z0-9_-]+)/([0-9a-f-]{36})"),
+]
+
+
 def row_id(r: dict) -> str:
     if r.get("ID"):
         return r["ID"]
+    for ats, pat in _URL_IDS:
+        m = re.search(pat, r.get("URL") or "")
+        if m:
+            return f"{ats}:{m.group(1)}:{m.group(2)}"
     role = re.sub(r"[^a-z0-9]+", "-", (r.get("Role") or "").lower()).strip("-")
     return f"row:{norm_company(r.get('Company', ''))}:{role or 'company'}"
 
@@ -443,7 +456,7 @@ def cmd_plan(args):
             if row["ID"] in live_by_id or key in by_name:
                 skipped.append({**op, "why": "already in tracker"})
                 continue
-            planned.append({"op": "add", "row": row})
+            planned.append({"op": "add", "row": row, "lock": op.get("lock") or []})
             live_by_id[row["ID"]] = row
             by_name[key] = row["ID"]
         elif kind == "update":
@@ -525,6 +538,8 @@ def cmd_apply(args):
         if op["op"] == "add":
             rows[op["row"]["ID"]] = op["row"]
             order.append(op["row"]["ID"])
+            if op.get("lock"):  # e.g. a Fit the user scored in their old tracker
+                locks["fields"][op["row"]["ID"]] = sorted(op["lock"])
         elif op["op"] == "update" and op["id"] in rows:
             r = rows[op["id"]]
             r.update(op.get("set") or {})
