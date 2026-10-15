@@ -97,7 +97,7 @@ def score_one(c: dict, x: dict, rubric: dict, prof: dict, rel: str) -> tuple[int
 
     loc_rules = rubric.get("location") or {}
     pref = (prof.get("location") or {}).get("preferred_metros") or []
-    where = f"{c.get('location', '')} {x.get('location_note', '')}"
+    where = c.get("location", "")  # the posting's own location; the reader's note may just mention home
     if loc_rules.get("preferred_metro") and any(m.lower() in where.lower() for m in pref):
         pts.append(("preferred metro", loc_rules["preferred_metro"]))
     if loc_rules.get("hours_conflict") and x.get("hours_conflict"):

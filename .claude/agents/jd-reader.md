@@ -59,6 +59,10 @@ Field rules:
 - **hours_conflict**: true only if the posting requires working hours in a
   time zone that doesn't fit the user's (e.g. "must work Eastern hours" for a
   Pacific user).
+  A territory in the title or team counts as evidence: "Mid-Market East",
+  "Enterprise Central", "EMEA" mean that region's customers and hours. Treat
+  it like the posting saying so, for `hours_conflict`, `location_ok` and any
+  hours dealbreaker, unless the description clearly says otherwise.
 - **comp_***: only if stated in the posting. Otherwise null. Never estimate.
 - **industry_tier**: core if the company's industry is in
   `profile.yaml → industries.core` or `background.md`'s significant-experience

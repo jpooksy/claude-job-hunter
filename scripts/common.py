@@ -139,7 +139,9 @@ def read_jsonl(path: Path) -> list[dict]:
     if not path.exists():
         return []
     out = []
-    for i, line in enumerate(path.read_text().splitlines(), 1):
+    # split on "\n" only: splitlines() also breaks on U+2028 and friends, which
+    # postings contain and json.dumps(ensure_ascii=False) leaves as-is
+    for i, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1):
         line = line.strip()
         if not line:
             continue

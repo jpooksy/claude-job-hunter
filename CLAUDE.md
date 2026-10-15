@@ -38,20 +38,26 @@ How the write finishes depends on `profile.yaml → tracker.backend`:
 - **`connector`** (Google Sheet via the claude.ai Google Sheets connector, the default).
   Scripts can't call connectors, so you do the reads and writes:
   1. **Read first.** Before `pull`, `plan` or `apply`, call
+     `get_spreadsheet(spreadsheetId=<sheet_id>, fields=["properties.title"])`
+     and run `uv run scripts/tracker.py local-copy --revision <revisionId>`.
+     If the sheet hasn't changed since our last write, that's the whole read.
+     If it has (the user edited it), call
      `get_values(spreadsheetId=<sheet_id>, range="Jobs!A1:Z")` and save the
-     result **verbatim** to `tracker/connector-read.json`. It counts as fresh
-     for 20 minutes.
+     result **verbatim** to `tracker/connector-read.json`. Either counts as
+     fresh for 20 minutes. **Never build that file from `tracker/jobs.csv`
+     yourself:** it would hide the user's hand edits.
   2. `apply` writes `tracker/connector-write.json`, containing **only the rows
      that changed** (new rows go at the end; the sheet keeps its own order).
      Send its `steps` in order, copying every field exactly as it is. Never
      retype or "fix" values: the leading `'` on text is intentional, and keeps
      it from being read as a formula or date. No steps means nothing changed.
-  3. Read back **only the ranges you wrote** (`apply` lists them): one
-     `get_values` per range, saved as a JSON list to
-     `tracker/connector-verify.json`. Then run
-     `uv run scripts/tracker.py verify-write`. If it reports differences,
-     re-send the same steps and verify again. Afterwards the saved copy of the
-     sheet is discarded, so the next command reads it fresh.
+  3. Read back **the ID column of the rows you wrote** (`apply` lists the
+     ranges): one `get_values` per range, saved as a JSON list to
+     `tracker/connector-verify.json`. Never build it from the write file;
+     that checks nothing. Then get the sheet's `revisionId`
+     (`get_spreadsheet`, as in step 1) and run
+     `uv run scripts/tracker.py verify-write --revision <revisionId>`. If it
+     reports differences, re-send the same steps and verify again.
 - **`sheets`** (service account) and **`csv`**: `apply` writes directly.
 
 The local copy `tracker/jobs.csv` is refreshed after every write, so agents can

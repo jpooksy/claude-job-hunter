@@ -61,7 +61,8 @@ LOCKS = TRACKER_DIR / "locks.json"  # fields/rows you edited by hand; kept until
 CSV_PATH = TRACKER_DIR / "jobs.csv"
 CONNECTOR_READ = TRACKER_DIR / "connector-read.json"
 CONNECTOR_WRITE = TRACKER_DIR / "connector-write.json"
-CONNECTOR_VERIFY = TRACKER_DIR / "connector-verify.json"  # read-back of just the written ranges
+CONNECTOR_VERIFY = TRACKER_DIR / "connector-verify.json"  # read-back of the written rows' IDs
+SHEET_REVISION = TRACKER_DIR / "sheet-revision.txt"  # the sheet's revisionId right after our last write
 PENDING = TRACKER_DIR / ".pending.csv"
 TAB = "Jobs"
 CHUNK_ROWS = 40
@@ -344,7 +345,9 @@ class ConnectorBackend:
             sys.exit("profile.yaml tracker.sheet_id is empty. Run /setup (Google Sheets step).")
 
     def read_instructions(self) -> str:
-        return (f'With the Google Sheets connector, call get_values(spreadsheetId="{self.sheet_id}", '
+        return (f'With the Google Sheets connector, call get_spreadsheet(spreadsheetId="{self.sheet_id}", '
+                f'fields=["properties.title"]) and run `tracker.py local-copy --revision <revisionId>`. '
+                f'If it says the sheet changed, call get_values(spreadsheetId="{self.sheet_id}", '
                 f'range="{TAB}!A1:Z") and save the JSON result verbatim to {CONNECTOR_READ}, then re-run.')
 
     def read(self) -> tuple[list[dict], list[str] | None]:
@@ -728,12 +731,16 @@ def cmd_apply(args):
         n = len(steps)
         if not steps:
             print("Nothing changed in the sheet.")
-        ranges = [st["range"] for st in steps if st["tool"] == "update_values"]
+        id_col = _col_letter(hdr.index("ID") + 1)
+        ranges = [re.sub(r"!([A-Z]+)(\d+):([A-Z]+)(\d+)", rf"!{id_col}\2:{id_col}\4", st["range"])
+                  for st in steps if st["tool"] == "update_values"]
         print(f"Planned {len(plan['ops'])} ops ({len(out)} rows). Now, with the Google Sheets connector:\n"
               f"  1. send the {n} steps in {CONNECTOR_WRITE} in order, copying each step's fields verbatim\n"
-              f"  2. read back only what you wrote: get_values for each of {ranges}, and save the\n"
-              f"     results as a JSON list, verbatim, to {CONNECTOR_VERIFY}\n"
-              f"  3. run: uv run scripts/tracker.py verify-write")
+              f"  2. read back the ID column of what you wrote: get_values for each of {ranges}, and save\n"
+              f"     the results as a JSON list, verbatim, to {CONNECTOR_VERIFY} (never build it from the\n"
+              f"     write file: that checks nothing)\n"
+              f"  3. get_spreadsheet(fields=[\"properties.title\"]) for the sheet's revisionId, then run:\n"
+              f"     uv run scripts/tracker.py verify-write --revision <revisionId>")
         return
     finalize(b, plan, path, hdr, locks)
 
@@ -768,9 +775,20 @@ def verify_ranges(b, pending_plan: Path):
     if len(reads) != len(steps):
         sys.exit(f"Expected {len(steps)} read-backs in {CONNECTOR_VERIFY}, found {len(reads)}.")
     norm = lambda v: str(v)[1:] if isinstance(v, str) and v.startswith("'") else str(v)  # noqa: E731
+    import csv as _csv
+    with PENDING.open(newline="", encoding="utf-8") as f:
+        hdr = next(_csv.reader(f), None) or COLUMNS
+    id_i = hdr.index("ID")
     problems = []
     for st, rd in zip(steps, reads):
         got = (rd or {}).get("values", [])
+        if all(len(r) <= 1 for r in got):  # just the ID column was read back
+            want = [norm(row[id_i]) if len(row) > id_i else "" for row in st["values"]]
+            have = [str(r[0]) if r else "" for r in got]
+            have += [""] * (len(want) - len(have))
+            problems += [f"{st['range']} row {i + 1}: sheet has ID {h!r}, expected {w!r}"
+                         for i, (w, h) in enumerate(zip(want, have)) if w.strip() != h.strip()]
+            continue
         for i, row in enumerate(st["values"]):
             have = [str(x) for x in (got[i] if i < len(got) else [])]
             have += [""] * (len(row) - len(have))
@@ -784,9 +802,6 @@ def verify_ranges(b, pending_plan: Path):
             print("  " + p_)
         sys.exit(f"Re-send the steps in {CONNECTOR_WRITE} (they're unchanged), read them back, and verify again.")
     pending = clean(read_csv(PENDING))
-    import csv as _csv
-    with PENDING.open(newline="", encoding="utf-8") as f:
-        hdr = next(_csv.reader(f), None) or COLUMNS
     finalize(b, json.loads(pending_plan.read_text()), pending_plan, hdr, load_locks(), after=pending)
     CONNECTOR_VERIFY.unlink(missing_ok=True)
 
@@ -800,7 +815,9 @@ def cmd_verify_write(args):
     if not PENDING.exists() or not pending_plan.exists():
         sys.exit("Nothing waiting to be verified. Run `tracker.py apply` first.")
     if CONNECTOR_VERIFY.exists() and CONNECTOR_VERIFY.stat().st_mtime >= CONNECTOR_WRITE.stat().st_mtime:
-        return verify_ranges(b, pending_plan)
+        verify_ranges(b, pending_plan)
+        save_revision(args.revision)
+        return
     want = {r["ID"]: r for r in clean(read_csv(PENDING))}
     got_rows, hdr = b.read()
     got = {r["ID"]: r for r in got_rows}
@@ -818,6 +835,36 @@ def cmd_verify_write(args):
         sys.exit(f"Re-send the steps in {CONNECTOR_WRITE} (they're unchanged), read the sheet back, "
                  "and run verify-write again.")
     finalize(b, json.loads(pending_plan.read_text()), pending_plan, hdr or COLUMNS, load_locks())
+    save_revision(args.revision)
+
+
+def save_revision(rev: str | None) -> None:
+    """Remember the sheet's revisionId right after our write. If it's the same next
+    time, nobody has touched the sheet, so the local copy can stand in for a full read."""
+    if rev:
+        SHEET_REVISION.write_text(rev.strip())
+    else:
+        SHEET_REVISION.unlink(missing_ok=True)
+
+
+def cmd_local_copy(args):
+    """Skip re-reading an unchanged sheet: the revisionId changes with every edit
+    (by hand or by us) and stays the same when the sheet is only read."""
+    b = backend(load_profile())
+    if not isinstance(b, ConnectorBackend):
+        sys.exit("local-copy is only for the connector backend.")
+    saved = SHEET_REVISION.read_text().strip() if SHEET_REVISION.exists() else ""
+    if not saved or saved != args.revision.strip() or not LAST_WRITTEN.exists():
+        print("The sheet changed since the last write (or there's no record of it). Read it: "
+              f'get_values(spreadsheetId="{b.sheet_id}", range="{TAB}!A1:Z"), and save the result '
+              f"verbatim to {CONNECTOR_READ}.")
+        sys.exit(1)
+    import csv as _csv
+    with LAST_WRITTEN.open(newline="", encoding="utf-8") as f:
+        values = list(_csv.reader(f))
+    CONNECTOR_READ.write_text(json.dumps({"range": f"{TAB}!A1:Z", "values": values}, ensure_ascii=False))
+    print(f"The sheet is unchanged since the last write ({len(values) - 1} rows), so the local copy "
+          f"stands in for a read. Carry on with pull / plan / apply.")
 
 
 def cmd_exclude(args):
@@ -835,7 +882,10 @@ def main():
     sub.add_parser("check")
     ini = sub.add_parser("init-sheet")
     ini.add_argument("--sheet-gid", type=int, default=0, help="(connector) the tab's sheetId; a new sheet's is 0")
-    sub.add_parser("verify-write")
+    vw = sub.add_parser("verify-write")
+    vw.add_argument("--revision", help="the sheet's revisionId (get_spreadsheet), read after the write")
+    lc = sub.add_parser("local-copy", help="(connector) use the local copy if the sheet is unchanged")
+    lc.add_argument("--revision", required=True, help="the sheet's current revisionId (get_spreadsheet)")
     sub.add_parser("pull")
     p = sub.add_parser("plan")
     p.add_argument("--scored", nargs="*", help="scored.jsonl files from score.py")
@@ -855,7 +905,7 @@ def main():
     args = ap.parse_args()
     {"check": cmd_check, "init-sheet": cmd_init_sheet, "pull": cmd_pull, "plan": cmd_plan,
      "apply": cmd_apply, "change": cmd_change, "exclude": cmd_exclude,
-     "verify-write": cmd_verify_write}[args.cmd](args)
+     "verify-write": cmd_verify_write, "local-copy": cmd_local_copy}[args.cmd](args)
 
 
 if __name__ == "__main__":

@@ -82,16 +82,21 @@ Rules that keep the tracker trustworthy:
 - **Always find the role title.** Open the confirmation email (or the job link
   in it) to get the exact title. If the title appears anywhere in the thread,
   or in the note you're writing, put it in Role. A partial title beats none
-  ("Growth (unconfirmed)"). Only if it truly isn't anywhere, leave Role empty
-  and list the row under "Need a title" in your report.
+  ("Growth (unconfirmed)"). If it truly isn't anywhere, **don't add the row**
+  (a row with no role isn't useful to the user); list it under "Left out: no
+  title" in your report, so they can add it if they remember.
 - **Never set Category "Passed".** That's the user's own decision not to
-  apply, so it can't come from email. If an application conflicts with their
-  dealbreakers, keep it as Applied and add a note ("conflicts with
-  dealbreaker: enterprise sales").
+  apply, so it can't come from email.
+- **Dealbreakers** (if `profile/dealbreakers.md` is filled in): don't add an
+  application that clearly hits one (a crypto company when crypto is a
+  dealbreaker), unless it's still active (In Conversation, Interviewing,
+  Offer). List it under "Left out: dealbreaker" in your report. During
+  /setup the dealbreakers aren't known yet, so setup does this step itself.
 - **Interviews with no recent activity** (no email in 30+ days, or follow-ups
-  with no reply): keep the status, add a note ("no reply since 2026-08-26"),
-  and list them under "Likely stalled" in your report. With no evidence of an
-  interview at all, don't mark it Interviewing.
+  with no reply): mark them Category **Closed**, Status **Ghosted**, with a
+  note ("no reply since 2026-08-26; reopen if they get back to you"), and
+  list them under "Stalled, marked closed" in your report. With no evidence
+  of an interview at all, don't mark it Interviewing.
 - **Rejection reasons matter.** If the email says why (e.g. "we need someone
   on Eastern time"), put it in the note. Later searches use it.
 
@@ -107,7 +112,8 @@ Don't open, summarize or quote anything unrelated.
 
 End with a short report:
 - rows checked, and ops written by type
-- **Need a title**: rows added without a role title
+- **Left out**: applications with no title, and (outside setup) ones that hit
+  a dealbreaker, company + date only
 - recruiter outreach you didn't log (company + date)
-- **Likely stalled**: interviews with no activity for 30+ days
+- **Stalled, marked closed**: interviews with no activity for 30+ days
 - any thread you couldn't classify (company + date only)

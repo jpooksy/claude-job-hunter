@@ -175,8 +175,10 @@ protection for ~/Downloads, ~/Desktop, ~/Documents), have the user type
 
    Read the public pages (WebFetch; `gh api users/<name>/repos` for GitHub).
    Write the highlights to `profile/work.md` (what it is, what it shows, link;
-   label side projects as such). Confirm in a line or two: "I see 3 projects
-   that stand out: X, Y, Z. Anything here that doesn't represent you well?"
+   label side projects as such). **Don't stop to ask about them.** Open the
+   next message (Step 2) with one line: "Saved your work: X, Y and Z stand
+   out. Say 'drop X' any time if one doesn't represent you." A separate
+   confirmation here is an extra turn, and users expect to move on.
 
 **Reading files:** PDF / images / text → the Read tool. DOCX →
 `uv run --with python-docx python -c "import docx,sys; print('\n'.join(p.text for p in docx.Document(sys.argv[1]).paragraphs))" FILE`.
@@ -211,9 +213,10 @@ Explain **in the chat text, before** the yes/no picker:
 If yes (see `docs/email-setup.md`):
 1. If the Gmail tools aren't available: claude.ai → Settings → Connectors →
    **Gmail**, then restart Claude Code and resume with `claude --continue`.
-2. Run one search ("thank you for applying", last 60 days) and **tell the
-   user the count in a chat message** before anything else ("Connected: I can
-   see about 50 application emails from the last two months.").
+2. Run one search ("thank you for applying", last 60 days). Put the count at
+   the top of the next message, the tracker one ("Connected: I can see about
+   50 application emails from the last two months."). Never skip it: it's
+   how the user knows email works.
 3. Set `email.enabled: true`.
 
 If no: "No problem. Say **connect my email** any time and I'll pick it up from
@@ -283,8 +286,8 @@ That takes about 5–10 minutes. Let's do your profile in the meantime."). Then:
    - Dates without a year ("8/12") are fine; the script fills in the year.
    - Their words go in Notes, word for word. "pass" or "too much python" →
      Category Passed (**their** decision).
-   - **Never drop a row from their list**, even one that hits a dealbreaker.
-     Keep it, with a note.
+   - Keep every row from their list for now. Rows that hit a dealbreaker are
+     left out in 4c, once the dealbreakers are known.
    - **Added by: You** on every row.
    - A real tracker with its own columns: split multi-role cells, map their
      values to ours, and map their own ratings to Fit with `"lock": ["Fit"]`.
@@ -421,7 +424,9 @@ Build it from the list and the audit (`inbox-changes.jsonl`), then show it as a
   is enough", then confirm in the same format.
 - Afterwards, write interviews to `profile/signals.md`, and set relationships:
   `uv run scripts/ats.py set --company X --relationship interviewed` (or
-  `door_open`). Import any new companies first.
+  `door_open`). Import any new companies first (the audit's too), then run
+  `uv run scripts/ats.py detect` in the background so /find-jobs doesn't
+  have to.
 
 ### 4b. Check your targets (one message)
 
@@ -451,18 +456,31 @@ uv run scripts/tracker.py pull
 uv run scripts/tracker.py plan --changes runs/setup/import.jsonl runs/<date>/inbox-changes.jsonl runs/<date>/changes.jsonl --ghosted
 ```
 
-(Queue the user's corrections from 4a as `tracker.py change` ops first.)
-Show **in the chat**:
-- **Adding:** N from your list, N found in your inbox. Updating N. N marked
-  ghosted.
-- **Need your input** (numbered): rows with no role title, interviews that
-  look stalled, applications that conflict with a dealbreaker (kept, with a
-  note), guessed job boards (with their link: "is this the right company's
-  jobs page?"), companies whose careers page I'll check by hand.
+Before planning, apply these defaults (users asked for them; don't ask
+again):
+- **No role title** → left out. The tracker is for roles.
+- **Interviews quiet for 30+ days** (no reply, unanswered follow-up) →
+  Category Closed, Status Ghosted, with a note ("no reply since 9/17; reopen
+  if they get back to you").
+- **Hits a dealbreaker** (from Round 4) → left out, unless the process is
+  still active (In Conversation, Interviewing, Offer). Add those companies to
+  `profile.yaml → exclude_companies`, so /find-jobs doesn't bring them back.
+- **Guessed job boards** (detect's "guessed without a name check") → check
+  each one yourself (WebFetch the careers page; does it link to that board?)
+  and fix any wrong ones with `ats.py set`. Don't ask the user.
 
-👉 **Your turn: reply "add it all", or tell me what to change.** Then apply,
-finish the write, and send the link again: "Your tracker now has 78 rows:
-[Job Hunt Tracker](…)".
+Queue the user's corrections from 4a as `tracker.py change` ops, then plan.
+Show **in the chat**, one approval:
+- **Adding:** N from your list, N found in your inbox, by category (N
+  interviewing, N waiting, N door open, N closed…).
+- **Left out:** N with no title (name them in one line), N that hit a
+  dealbreaker (name them; "they're excluded from searches too").
+- **Marked closed (stalled):** the companies, in one line.
+- Job boards: "checked the N I had to guess; fixed N" (one line).
+
+👉 **Your turn: reply "add it all", or tell me what to change (e.g. "keep
+Snowflake").** Then apply, finish the write, and send the link again: "Your
+tracker now has 78 rows: [Job Hunt Tracker](…)".
 
 ## Step 5 of 5: What's next
 

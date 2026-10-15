@@ -43,7 +43,10 @@ def _any(patterns: list[str], text: str) -> str | None:
 
 
 def _norm_title(t: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", (t or "").lower()).strip()
+    # "Pre-Sales Solutions Engineer (San Francisco, CA)" is the same job as the one
+    # tracked as "Pre-Sales Solutions Engineer": ignore parenthesised locations/notes.
+    t = re.sub(r"\([^)]*\)", " ", (t or "").lower())
+    return re.sub(r"[^a-z0-9]+", " ", t).strip()
 
 
 def comp_floor(title: str, comp: dict) -> int:
