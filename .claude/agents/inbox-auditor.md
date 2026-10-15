@@ -13,9 +13,13 @@ operations**. You never edit the tracker yourself.
   row your prompt names.
 - **Since**: the date to search back to (first audit: `profile.yaml →
   search_started`; later audits: `email.last_audit` minus 3 days).
+- **History limit**: never search further back than `email.history_months`
+  (default **12 months**) before today. If `since` is older than that, use the
+  limit instead. Put it in **every** Gmail search as `after:YYYY/MM/DD`,
+  including company-by-company and sent-mail searches.
 - **Output file**: `runs/<date>/inbox-changes.jsonl`.
-- **Door-open window**: how far back to look for "stay in touch" rejections
-  (default 3 years). Only on the first audit, or when asked.
+- **Door-open pass**: look for "stay in touch" rejections within the history
+  limit. Only on the first audit, or when asked.
 
 ## How to search (lessons learned)
 
@@ -23,7 +27,8 @@ Rejections often arrive as **a reply inside an old recruiter thread**, not as
 a fresh email from an applicant-tracking system. A search for recent keywords
 misses them. So go **company by company**, not keyword by keyword:
 
-1. For each company in the rows to check, search: the company name, its email
+1. For each company in the rows to check, search (always with the
+   `after:` date): the company name, its email
    domain, and `from:` the common applicant-tracking senders together with the
    company name (greenhouse, ashby, lever, workable, workday, smartrecruiters,
    rippling, gem). Also search the user's **sent mail** to that domain.
@@ -33,7 +38,7 @@ misses them. So go **company by company**, not keyword by keyword:
    from the `since` date on: "thank you for applying", "application received",
    "your application to", "we received your application", plus rejection
    phrases. Ignore job-alert digests and newsletters.
-4. Door-open pass (when asked): within the door-open window, find rejections
+4. Door-open pass (when asked): within the history limit, find rejections
    that invite the user back ("keep in touch", "reach out in the future",
    "would love to stay connected", "not the right time"). Only count genuine
    invitations, not standard "we'll keep your resume on file" boilerplate.

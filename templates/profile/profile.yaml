@@ -52,6 +52,7 @@ exclude_companies: []       # never show roles here
 
 email:
   enabled: false            # true once the Gmail connector works (see docs/email-setup.md)
+  history_months: 12        # how far back the inbox audit searches (max)
   last_audit: ""            # set by the inbox audit
 
 tracker:

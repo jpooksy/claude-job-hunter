@@ -21,6 +21,8 @@ Highly recommended, not required. With email connected, Claude can:
 
 - Reads only job-search messages, company by company (see
   `.claude/agents/inbox-auditor.md`).
+- Searches back **12 months at most**. Change `email.history_months` in
+  `profile/profile.yaml` if you want more or less.
 - Writes tracker changes with the date and a one-line reason, never email
   bodies or recruiters' contact details.
 - Can save **drafts** (follow-ups, outreach) when you ask. It never sends.

@@ -204,7 +204,8 @@ Explain **in the chat text, before** the yes/no picker:
   touch". You'll just confirm what it found instead of typing your history.
 - The trade-off: Claude reads your mail through the claude.ai **Gmail**
   connector during sessions (nothing else: not your calendar or files), looks
-  only at job-search messages, and never sends anything. You can disconnect
+  only at job-search messages from the last 12 months, and never sends
+  anything. You can disconnect
   any time. Skipping is fine if you have security concerns.
 
 If yes (see `docs/email-setup.md`):
@@ -288,10 +289,12 @@ That takes about 5–10 minutes. Let's do your profile in the meantime."). Then:
    - A real tracker with its own columns: split multi-role cells, map their
      values to ours, and map their own ratings to Fit with `"lock": ["Fit"]`.
 2. **`search_started`:** set it without asking. Use the earliest application
-   date in the list, or failing that 6 months ago. The inbox audit refines it.
+   date in the list, but no earlier than 12 months ago (failing that, 6 months
+   ago). The inbox audit refines it.
 3. **Inbox audit** (if email is on): launch the **inbox-auditor** with
    `run_in_background: true`. Rows = the import plus anything already tracked;
-   since = `search_started`; door-open pass over 3 years; output
+   since = `search_started`; door-open pass on; email is searched back
+   12 months at most (`email.history_months`); output
    `runs/<date>/inbox-changes.jsonl`.
 4. **Companies:** import the list's companies (`--relationship target`), then
    run `uv run scripts/ats.py detect` in the background (Bash

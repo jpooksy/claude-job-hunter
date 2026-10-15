@@ -49,6 +49,7 @@ exclude_companies: []
 
 email:
   enabled: false
+  history_months: 12
   last_audit: ""
 
 tracker:
