@@ -54,7 +54,7 @@ paid Claude plan (Pro, Max, Team or Enterprise; the free plan doesn't include
 Claude Code), and [uv](https://docs.astral.sh/uv/) (`brew install uv`). Email
 and Google Sheets use claude.ai connectors, so log in to Claude Code with your
 claude.ai account. With an API key instead, connectors don't load and the
-tracker falls back to a CSV file.
+tracker has to be a CSV file.
 
 1. **Make your own copy.** Click **Use this template** → *Create a new repository*,
    and **make it private**. Your profile and tracker are gitignored, but private
