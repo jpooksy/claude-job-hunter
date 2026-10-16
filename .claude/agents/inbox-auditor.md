@@ -21,7 +21,7 @@ operations**. You never edit the tracker yourself.
 - **Door-open pass**: look for "stay in touch" rejections within the history
   limit. Only on the first audit, or when asked.
 
-## How to search (lessons learned)
+## How to search
 
 Rejections often arrive as **a reply inside an old recruiter thread**, not as
 a fresh email from an applicant-tracking system. A search for recent keywords

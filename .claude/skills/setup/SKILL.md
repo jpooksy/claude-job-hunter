@@ -16,9 +16,8 @@ alone.
 
 ## How to talk to the user (every step)
 
-Patterns from well-designed intake flows (GOV.UK "check answers", spec-kit
-`/clarify`, Google's conversation design, TurboTax-style pre-fill), adapted to
-a terminal.
+CLAUDE.md → Talking to the user applies throughout. Setup adds the rules
+below.
 
 ### The shape of every message
 
@@ -37,29 +36,21 @@ From your resume: Denver, remote in your last two roles.        ← what you alr
 - **Progress:** the header on every message, with a question count inside a
   step ("question 2 of 3") so progress never looks stuck. The named step line
   (✓ done · ▸ current · ○ to come) appears only when a new step starts.
-- **The ask, in bold, is the very last line**, after a blank line. **Exactly
-  one ask per message.** It says exactly what to do and which answers work
-  ("Drag in your resume, or paste the text"; "Reply 'yes', or fix by number").
-  Never end on an explanation or a status update, and never on vague asks like
-  "Thoughts?" Even before a picker, write the bolded ask first.
-- **Short and scannable:** at most ~8 lines before the ask; lines under ~80
-  characters; bold only for labels and the ask; no nested bullets; no tables
-  wider than the terminal. Lead with the result ("Connected: 50 emails"),
-  then the detail.
+- **The ask** names the accepted answers ("Drag in your resume, or paste the
+  text"; "Reply 'yes', or fix by number"). Never end on a status update or a
+  vague "Thoughts?". Even before a picker, write the bolded ask first.
+- **Fits a terminal:** lines under ~80 characters, no nested bullets, no
+  tables wider than the terminal.
 - **Anything the user approves is in the chat text of that same message.** Tool
   output is collapsed, so never point to it ("above"). Copy what matters in.
 
 ### Asking well
 
-- **Propose, don't interrogate.** Facts are your job; decisions are theirs.
-  Wherever the files support an answer, draft it and ask them to confirm.
-  Mark guesses with **(my guess)**. Word it so "yes" accepts your proposal.
 - **One question per message**, and wait for the reply. Never bundle a
   follow-up with the next question.
-- **Pickers (AskUserQuestion) are for real choices only.** One question per call,
-  with the **recommended option first, labelled "(Recommended)"**. Never offer
-  an option that means "I'll tell you next"; it swallows the answer. Open
-  questions (files, links, lists) go in plain chat.
+- **Pickers (AskUserQuestion):** one question per call. Never offer an option
+  that means "I'll tell you next"; it swallows the answer. Open questions
+  (files, links, lists) go in plain chat.
 - **Make broad questions easy.** For open questions like dealbreakers, offer a
   multi-select picker of 3–4 likely answers for **their** field (with "Other"
   for typing), instead of a blank prompt.
@@ -77,12 +68,10 @@ From your resume: Denver, remote in your last two roles.        ← what you alr
 
 ### When things don't go to plan
 
-- **A reply you can't use:** don't repeat the question word for word. First ask
-  a narrower one-line version. Second time, give two examples from their
-  resume, or switch to a picker. After that, save a sensible default marked
-  **(my guess)** and say "you can change this in the review".
-- **A tangent or question** ("why do you need this?"): answer briefly, then
-  repeat the bolded ask, so they're back where they were.
+- **A reply you still can't use** after the narrower version: give two
+  examples from their resume, or switch to a picker. After that, save a
+  sensible default marked **(my guess)** and say "you can change this in the
+  review".
 - **Corrections, at any time,** including to earlier steps ("change my salary to
   130k"): apply them, echo what changed ("Pay floor: $130k (was $150k)"), and
   carry on from where you were.
@@ -128,7 +117,7 @@ profile. 👉 **Your turn: reply 'continue', or name a part to redo.**").
 Otherwise, a welcome of **three lines**, then go straight to the first question
 in the same message:
 
-> Setup takes about 20 minutes: your files, connect email and a tracker, a few
+> Setup takes about 25 minutes: your files, connect email and a tracker, a few
 > profile questions, then a quick check of your search so far. Finding new jobs
 > comes right after, with /find-jobs.
 > Any time you can say **back**, **skip**, **pause**, or **why?**
@@ -177,8 +166,7 @@ protection for ~/Downloads, ~/Desktop, ~/Documents), have the user type
    Write the highlights to `profile/work.md` (what it is, what it shows, link;
    label side projects as such). **Don't stop to ask about them.** Open the
    next message (Step 2) with one line: "Saved your work: X, Y and Z stand
-   out. Say 'drop X' any time if one doesn't represent you." A separate
-   confirmation here is an extra turn, and users expect to move on.
+   out. Say 'drop X' any time if one doesn't represent you."
 
 **Reading files:** PDF / images / text → the Read tool. DOCX →
 `uv run --with python-docx python -c "import docx,sys; print('\n'.join(p.text for p in docx.Document(sys.argv[1]).paragraphs))" FILE`.
@@ -344,7 +332,7 @@ One question per message, each starting from what the files show:
    - Near home → "Which cities would you go into an office in?"
    - Relocating → "Where would you move? A few cities or regions, or 'anywhere
      in the US'." Then: "Only if they help with moving costs?"
-3. "What's the lowest salary you'd consider? If a posting's whole pay range is
+2. "What's the lowest salary you'd consider? If a posting's whole pay range is
    below that, I'll hide it. Postings without pay listed are kept." If their
    positions span different kinds of roles: "Is that the same for every kind
    of role?" Different answers go in `comp.by_title`.
@@ -456,8 +444,7 @@ uv run scripts/tracker.py pull
 uv run scripts/tracker.py plan --changes runs/setup/import.jsonl runs/<date>/inbox-changes.jsonl runs/<date>/changes.jsonl --ghosted
 ```
 
-Before planning, apply these defaults (users asked for them; don't ask
-again):
+Before planning, apply these defaults without asking:
 - **No role title** → left out. The tracker is for roles.
 - **Interviews quiet for 30+ days** (no reply, unanswered follow-up) →
   Category Closed, Status Ghosted, with a note ("no reply since 9/17; reopen

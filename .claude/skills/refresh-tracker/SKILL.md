@@ -51,7 +51,7 @@ uv run scripts/filter.py
 ```
 
 If there are candidates, run jd-reader agents on the batches (as in
-find-jobs step 4) and then `uv run scripts/score.py`. No company research here.
+find-jobs step 1) and then `uv run scripts/score.py`. No company research here.
 That's /find-jobs.
 
 ## 5. Plan → confirm → apply
