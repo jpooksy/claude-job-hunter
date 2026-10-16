@@ -1,6 +1,6 @@
 ---
 name: setup
-description: First-run setup for claude-job-hunter. Collects the user's resumes and history, asks short rounds of questions to build their profile, connects email and a Google Sheet tracker (both recommended, both optional), and fills the tracker from their own list and inbox. Use when the user runs /setup, is new to the repo, or wants to redo part of setup ("set up Google Sheets", "connect my email", "redo my profile").
+description: First-run setup for lookalike-job-hunter. Collects the user's resumes and history, asks short rounds of questions to build their profile, connects email and a Google Sheet tracker (both recommended, both optional), and fills the tracker from their own list and inbox. Use when the user runs /setup, is new to the repo, or wants to redo part of setup ("set up Google Sheets", "connect my email", "redo my profile").
 ---
 
 # Setup

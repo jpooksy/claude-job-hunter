@@ -1,4 +1,4 @@
-# claude-job-hunter
+# lookalike-job-hunter
 
 A [Claude Code](https://claude.com/claude-code) workspace for finding jobs at
 software and tech companies **you're actually a fit for**, and keeping your
@@ -60,8 +60,8 @@ tracker has to be a CSV file.
    and **make it private**. Your profile and tracker are gitignored, but private
    is the safe default for a job search. Or just clone it:
    ```bash
-   git clone https://github.com/jpooksy/claude-job-hunter.git
-   cd claude-job-hunter
+   git clone https://github.com/jpooksy/lookalike-job-hunter.git
+   cd lookalike-job-hunter
    ```
 2. **Start Claude Code** in the folder. It greets you and points you to setup:
    ```bash

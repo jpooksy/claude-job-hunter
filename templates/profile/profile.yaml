@@ -58,7 +58,7 @@ email:
 tracker:
   backend: csv              # csv | sheets   (Google Sheets is recommended)
   sheet_id: ""
-  service_account: ~/.config/claude-job-hunter/service-account.json
+  service_account: ~/.config/lookalike-job-hunter/service-account.json
   ghosted_after_days: 30
   sort: true                # CSV / service account: sort rows by Category, then Fit.
                             # A connector Google Sheet keeps its own order (sort with its filter).

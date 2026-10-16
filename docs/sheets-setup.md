@@ -58,9 +58,9 @@ block service-account keys (error: "Service account key creation is disabled").
    Create new key → **JSON** → Create. A `.json` file downloads.
 5. Move it into place (in a terminal, or type `! ` before the command in Claude Code):
    ```bash
-   mkdir -p ~/.config/claude-job-hunter
-   mv ~/Downloads/job-hunter-*.json ~/.config/claude-job-hunter/service-account.json
-   chmod 600 ~/.config/claude-job-hunter/service-account.json
+   mkdir -p ~/.config/lookalike-job-hunter
+   mv ~/Downloads/job-hunter-*.json ~/.config/lookalike-job-hunter/service-account.json
+   chmod 600 ~/.config/lookalike-job-hunter/service-account.json
    ```
 
 Treat the key like a password: never commit it or paste it into chat.
@@ -73,8 +73,8 @@ gcloud projects create job-hunter-$RANDOM --set-as-default
 gcloud services enable sheets.googleapis.com
 gcloud iam service-accounts create job-hunter-sheets
 SA=$(gcloud iam service-accounts list --filter=name:job-hunter-sheets --format='value(email)')
-gcloud iam service-accounts keys create ~/.config/claude-job-hunter/service-account.json --iam-account "$SA"
-chmod 600 ~/.config/claude-job-hunter/service-account.json
+gcloud iam service-accounts keys create ~/.config/lookalike-job-hunter/service-account.json --iam-account "$SA"
+chmod 600 ~/.config/lookalike-job-hunter/service-account.json
 ```
 </details>
 
@@ -95,7 +95,7 @@ In `profile/profile.yaml`:
 tracker:
   backend: sheets   # (the connector option uses: backend: connector)
   sheet_id: "<the ID>"
-  service_account: ~/.config/claude-job-hunter/service-account.json
+  service_account: ~/.config/lookalike-job-hunter/service-account.json
 ```
 
 Then:

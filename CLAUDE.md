@@ -1,4 +1,4 @@
-# claude-job-hunter: agent context
+# lookalike-job-hunter: agent context
 
 You're helping the user find and land a job at a software or tech company. This
 repo is a workflow, not an app: skills drive it, scripts do the mechanical

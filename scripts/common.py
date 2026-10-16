@@ -1,4 +1,4 @@
-"""Shared paths, schema, and helpers for the claude-job-hunter scripts.
+"""Shared paths, schema, and helpers for the lookalike-job-hunter scripts.
 
 Every script resolves files relative to a *workspace*: the directory holding
 profile/, data/, tracker/ and runs/. It defaults to the repo root. Set
@@ -186,7 +186,7 @@ def save_companies(rows: list[dict]) -> None:
 
 # --- HTTP -----------------------------------------------------------------
 
-UA = "Mozilla/5.0 (claude-job-hunter; +https://github.com/jpooksy/claude-job-hunter)"
+UA = "Mozilla/5.0 (lookalike-job-hunter; +https://github.com/jpooksy/lookalike-job-hunter)"
 
 
 def http_get(url: str, timeout: int = 20, retries: int = 2) -> tuple[int, str]:

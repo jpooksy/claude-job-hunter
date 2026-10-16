@@ -55,6 +55,6 @@ email:
 tracker:
   backend: csv
   sheet_id: ""
-  service_account: ~/.config/claude-job-hunter/service-account.json
+  service_account: ~/.config/lookalike-job-hunter/service-account.json
   ghosted_after_days: 30
   sort: true

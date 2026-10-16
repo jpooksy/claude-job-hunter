@@ -6,9 +6,9 @@ dir="${CLAUDE_PROJECT_DIR:-.}"
 state="$dir/runs/setup/state.json"
 if [ ! -f "$dir/profile/profile.yaml" ]; then
 cat <<'JSON'
-{"systemMessage": "👋 Welcome to claude-job-hunter! New here? Type /setup to get started (about 25 minutes).",
+{"systemMessage": "👋 Welcome to lookalike-job-hunter! New here? Type /setup to get started (about 25 minutes).",
  "hookSpecificOutput": {"hookEventName": "SessionStart",
-  "additionalContext": "This is a fresh copy of claude-job-hunter: profile/profile.yaml doesn't exist yet. Whatever the user's first message is, start your reply by welcoming them in one or two sentences and telling them to type /setup to get started (about 25 minutes; it builds their profile and tracker, then /find-jobs finds roles). If they ask what this is, explain briefly first."}}
+  "additionalContext": "This is a fresh copy of lookalike-job-hunter: profile/profile.yaml doesn't exist yet. Whatever the user's first message is, start your reply by welcoming them in one or two sentences and telling them to type /setup to get started (about 25 minutes; it builds their profile and tracker, then /find-jobs finds roles). If they ask what this is, explain briefly first."}}
 JSON
   exit 0
 fi

@@ -194,7 +194,7 @@ class SheetsBackend:
         if not self.sheet_id:
             sys.exit("profile.yaml tracker.sheet_id is empty. Run /setup (Google Sheets step).")
         key = Path(os.path.expanduser(cfg.get("service_account") or
-                                      "~/.config/claude-job-hunter/service-account.json"))
+                                      "~/.config/lookalike-job-hunter/service-account.json"))
         if not key.exists():
             sys.exit(f"Service-account key not found at {key}. See docs/sheets-setup.md.")
         self.creds = service_account.Credentials.from_service_account_file(
