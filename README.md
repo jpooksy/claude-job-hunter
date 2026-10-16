@@ -49,8 +49,10 @@ you meet a posting's requirements.
 
 ## Quickstart
 
-**You need:** [Claude Code](https://docs.claude.com/en/docs/claude-code), a
-claude.ai account, and [uv](https://docs.astral.sh/uv/) (`brew install uv`).
+**You need:** [Claude Code](https://docs.claude.com/en/docs/claude-code) with a
+paid Claude plan (Pro or Max), and [uv](https://docs.astral.sh/uv/)
+(`brew install uv`). Email and Google Sheets use claude.ai connectors on the
+same account.
 
 1. **Make your own copy.** Click **Use this template** → *Create a new repository*,
    and **make it private**. Your profile and tracker are gitignored, but private
@@ -70,8 +72,12 @@ claude.ai account, and [uv](https://docs.astral.sh/uv/) (`brew install uv`).
    - what you already use to track your search, if anything (a sheet, a list). With email connected, Claude finds your applications and interviews for you.
    - optional: links to your work (GitHub, portfolio, blog, videos).
 
-Setup takes about 25 minutes, most of it short questions. Claude drafts what it can from your files, so you mostly confirm. Say **back**, **skip**, **pause** or **why?** any time; if you stop partway, the next session offers to pick up where you left off. Then run
-`/find-jobs` (about 10–15 minutes) to get your first recommendations.
+Setup takes about 25 minutes, most of it short questions. Claude drafts what
+it can from your files, so you mostly confirm. Say **back**, **skip**,
+**pause** or **why?** any time. If you stop partway, the next session offers
+to pick up where you left off.
+
+Then run `/find-jobs` (about 10–15 minutes) to get your first recommendations.
 
 ### Be honest in setup
 
@@ -91,15 +97,16 @@ Both are optional. Setup explains the trade-offs and walks you through each one.
 **Email (Gmail connector).** Lets Claude find every application's real status:
 confirmations, interviews, rejections (including ones buried as replies in
 old threads), ghosting, and companies that said "stay in touch" (your
-warmest leads). Read-only, job-search messages only, never sends. Skip it if
+warmest leads). Read-only, job-search messages from the last 12 months only
+(`email.history_months` in `profile.yaml`), and it never sends anything. Skip it if
 you have security concerns, and tell Claude about changes yourself.
 → [docs/email-setup.md](docs/email-setup.md)
 
 **Google Sheets.** The tracker updates automatically in a real spreadsheet
 you can open anywhere, with filters, dropdowns and color-coded scores. Connect
 the claude.ai **Google Sheets** and **Google Drive** connectors, and Claude
-creates and fills the sheet. There's no Google Cloud setup. Every write is read
-back and checked. The CSV alternative works, but you have to re-open the file
+creates and fills the sheet. There's no Google Cloud setup. Every write is
+checked against the sheet afterwards. The CSV alternative works, but you have to re-open the file
 after every update. (Already have a Google service account? That works too.)
 → [docs/sheets-setup.md](docs/sheets-setup.md)
 
@@ -169,8 +176,9 @@ uv run scripts/filter.py         # cheap filters -> batches for the jd-reader
 .claude/
   skills/   setup/  find-jobs/  refresh-tracker/  apply/
   agents/   company-researcher.md  jd-reader.md  inbox-auditor.md
-  settings.json                  # pre-approves the read-only script commands
+  settings.json                  # pre-approves pipeline commands; welcome message on startup
 scripts/    ats.py  filter.py  score.py  tracker.py  common.py   (run with uv run)
+            welcome.sh                                # the startup welcome / resume prompt
 templates/  profile/*  companies.csv                      # copied by /setup
 docs/       sheets-setup.md  email-setup.md  lessons.md
 examples/   fictional-persona/
